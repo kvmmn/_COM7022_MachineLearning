@@ -1,0 +1,4 @@
+model,clusters,noise_pct,silhouette,davies_bouldin,calinski_harabasz,stability_ARI_mean,stability_ARI_sd,smallest_cluster_pct,largest_cluster_pct
+K-Means,4,0.0,0.307,1.015,503.3,0.932,0.025,22.0,31.3
+Hierarchical (Ward),4,0.0,0.253,1.257,402.9,0.481,0.084,16.8,35.9
+DBSCAN,2,8.9,-0.014,1.172,3.5,0.749,0.063,0.4,90.7

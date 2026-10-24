@@ -1,0 +1,13 @@
+,step,rows_affected,note
+0,Recover price from priceWithCurrency,5,"Exact same value, only stored in text form"
+1,Convert CAD prices to USD,3,"Fixed rate 0.73, documented approximation"
+2,Recover sold from text,2,Exact value from the listing wording
+3,Set sold = 0 where text shows stock but no sales,3,Listing wording omits 'sold' when nothing has sold
+4,Drop rows with no sales or stock information,3,Cannot be placed on the sales-performance axis
+5,Stock: 'More than 10' coded as 11,299,"Censored value, not exact"
+6,Stock: explicit values above 10 capped at 11,115,Same scale as the censored rows
+7,Stock: 'Last One' coded as 1,47,Wording means one unit left
+8,Stock: median imputation,62,Limited quantity / lot wording; flagged in stock_imputed
+9,Collapse category labels into 6 product types,994,"Case, spelling and wording variants"
+10,Missing brand set to 'Unbranded',1,Single row
+11,Log-transform price and sold,997,Outliers kept; log scale limits their pull on distances

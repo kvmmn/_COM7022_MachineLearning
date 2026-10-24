@@ -1,0 +1,5 @@
+linkage,cophenetic_corr,silhouette_at_k,cluster_sizes
+single,0.362,0.217,994/1/1/1
+complete,0.536,0.197,424/388/180/5
+average,0.631,0.206,989/6/1/1
+ward,0.579,0.253,358/237/235/167

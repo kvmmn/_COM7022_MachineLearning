@@ -1,0 +1,11 @@
+# Local mirror of the Google Colab stack used for the assessed run.
+pandas>=2.0
+numpy>=1.24
+scikit-learn>=1.3
+scipy>=1.10
+matplotlib>=3.7
+seaborn>=0.12
+# Notebook execution and report build
+nbformat>=5.9
+nbclient>=0.9
+ipykernel>=6.25

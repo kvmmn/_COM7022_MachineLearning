@@ -1,0 +1,12 @@
+Age,Income,Student,Credit_rating,Buy_computer
+old,low,yes,fair,yes
+old,high,no,fair,yes
+young,low,no,excellent,no
+middle,low,no,fair,no
+old,low,yes,excellent,no
+young,high,yes,excellent,yes
+young,high,no,fair,yes
+young,low,yes,fair,no
+middle,high,yes,excellent,no
+young,high,no,fair,yes
+old,low,no,excellent,no

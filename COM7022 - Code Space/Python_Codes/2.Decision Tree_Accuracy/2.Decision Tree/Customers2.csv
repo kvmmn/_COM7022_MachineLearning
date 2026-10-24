@@ -1,0 +1,15 @@
+Age,Income,Student,Credit_rating,Gender,Education,Buy_computer
+young,high,no,fair,M,Bs,no
+young,high,no,excellent,F,Ms,no
+middle,high,no,fair,F,Phd,yes
+old,medium,no,fair,M,Phd,yes
+old,low,yes,fair,M,Bs,yes
+old,low,yes,excellent,F,Phd,no
+middle,low,yes,excellent,F,Ms,yes
+young,medium,no,fair,F,Ms,no
+young,low,yes,fair,M,Ms,yes
+old,medium,yes,fair,F,Bs,yes
+young,medium,yes,excellent,M,Ms,yes
+middle,medium,no,excellent,M,Bs,yes
+middle,high,yes,fair,M,Phd,yes
+old,medium,no,excellent,F,Bs,no

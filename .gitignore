@@ -1,0 +1,12 @@
+.DS_Store
+**/.DS_Store
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+.venv/
+.env
+*.log
+~$*
+
+# Large lecture recordings or temp files if any
+COM7022 - Code Space/*.zip
