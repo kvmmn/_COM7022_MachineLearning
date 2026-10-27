@@ -7,7 +7,7 @@ Assignment: **Product Segmentation and Performance Clustering (Portfolio)**
 ---
 
 ### Final report and review page
-- **Final report (Word):** [`COM7022 - Assignment/COM7022_Portfolio_25199053_final.docx`](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.docx) and [PDF](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.pdf). Task 1 and Task 2 in one document, about 3,300 words of body text, full code in Appendix A as screenshots.
+- **Final report (Word):** [`COM7022 - Assignment/COM7022_Portfolio_25199053_final.docx`](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.docx) and [PDF](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.pdf). Task 1 and Task 2 in one document, about 3,900 words of body text, full code in Appendix A as screenshots.
 - **Review page (GitHub Pages):** [https://kvmmn.github.io/_COM7022_MachineLearning/](https://kvmmn.github.io/_COM7022_MachineLearning/) shows the same report with an interactive segment explorer.
 - **Notebook (executed on Google Colab, with outputs):** [`COM7022 - Assignment/COM7022_Clustering_25199053.ipynb`](COM7022%20-%20Assignment/COM7022_Clustering_25199053.ipynb)
 - **Dataset:** [`COM7022 - Assignment/Sales-[5444].csv`](COM7022%20-%20Assignment/Sales-%5B5444%5D.csv)
