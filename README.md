@@ -7,13 +7,15 @@ Assignment: **Product Segmentation and Performance Clustering (Portfolio)**
 ---
 
 ### Final report and review page
-- **Final report (Word):** [`COM7022 - Assignment/COM7022_Portfolio_25199053_final.docx`](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.docx) and [PDF](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.pdf). Task 1 and Task 2 in one document, about 2,900 words of body text, full code in Appendix A as screenshots.
+- **Final report (Word):** [`COM7022 - Assignment/COM7022_Portfolio_25199053_final.docx`](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.docx) and [PDF](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.pdf). Task 1 and Task 2 in one document, 2,870 words of body text, full code in Appendix A as screenshots.
 - **Review page (GitHub Pages):** [https://kvmmn.github.io/_COM7022_MachineLearning/](https://kvmmn.github.io/_COM7022_MachineLearning/) shows the same report with an interactive segment explorer.
 - **Notebook (Colab-ready):** [`COM7022 - Assignment/COM7022_Clustering_25199053.ipynb`](COM7022%20-%20Assignment/COM7022_Clustering_25199053.ipynb)
 - **Dataset:** [`COM7022 - Assignment/Sales-[5444].csv`](COM7022%20-%20Assignment/Sales-%5B5444%5D.csv)
 - **Code screenshots:** `COM7022 - Assignment/output/screenshots/` (body) and `.../appendix/` (every notebook cell)
 
-**Rebuild order:** run the notebook, then `scripts/03_build_report_assets.py`, `04_build_report_docx.py` and `05_build_review_html.py`.
+**Single source of truth:** all report text lives in `COM7022 - Assignment/_brain/REPORT.md`. The Word/PDF report and the GitHub Pages portal are both generated from it, so they always match.
+
+**Rebuild order:** run the notebook, then `scripts/03_build_report_assets.py` (code screenshots and diagrams), `04_build_report_docx.py` (Word + PDF) and `02_build_review_html.py` (portal).
 
 ---
 
@@ -27,7 +29,7 @@ Assignment: **Product Segmentation and Performance Clustering (Portfolio)**
 | `COM7022 - Code Space/` | Seminar notebooks, Colab activities, and reference code |
 | `COM7022 - Lessons/` | Module lecture slides, transcripts, and reading material |
 | `COM7022 - eBooks/` | Reference textbooks |
-| `index.html` | GitHub Pages copy of the final report with interactive cluster explorer (built by `scripts/05_build_review_html.py`) |
+| `index.html` | GitHub Pages copy of the final report with interactive cluster explorer (built by `scripts/02_build_review_html.py`) |
 
 ---
 
