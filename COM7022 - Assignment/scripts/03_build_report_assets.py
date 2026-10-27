@@ -129,6 +129,40 @@ def prep_flow():
     plt.close(fig)
 
 
+def segment_actions():
+    """Executive view: share of listings vs share of units sold per segment, with the recommended action."""
+    import pandas as pd
+    prof = pd.read_csv(ROOT / "output" / "tables" / "table13_cluster_profiles.csv", index_col=0)
+    order = [(2, "Best-sellers", "PROTECT", TIFFANY), (0, "Premium designer", "GROW", "#1A4A6B"),
+             (1, "Budget", "REPOSITION", "#0E7C8B"), (3, "Low-stock tail", "AUDIT", "#C0392B")]
+    fig, ax = plt.subplots(figsize=(11, 4.6))
+    y = range(len(order))
+    for i, (c, name, act, col) in enumerate(order):
+        lst, units = prof.loc[c, "share_of_listings_pct"], prof.loc[c, "share_of_units_sold_pct"]
+        ax.barh(i + 0.18, lst, height=0.34, color="#C9D5DD")
+        ax.barh(i - 0.18, units, height=0.34, color=col)
+        ax.text(lst + 1, i + 0.18, f"{lst:.1f}% of listings", va="center", fontsize=9, color="#5A6B75")
+        if units > 60:   # long bar: write the label inside it so it never collides with the action tag
+            ax.text(units - 1.5, i - 0.18, f"{units:.1f}% of units sold", va="center", ha="right", fontsize=9.5,
+                    color="white", fontweight="bold")
+        else:
+            ax.text(units + 1, i - 0.18, f"{units:.1f}% of units sold", va="center", fontsize=9.5, color=MIDNIGHT,
+                    fontweight="bold")
+        ax.text(103, i, act, va="center", ha="left", fontsize=10, fontweight="bold", color="white",
+                bbox=dict(boxstyle="round,pad=0.45", fc=col, ec="none"))
+    ax.set_yticks(list(y))
+    ax.set_yticklabels([f"Cluster {c}\n{n}" for c, n, _, _ in order], fontsize=10, color=MIDNIGHT)
+    ax.invert_yaxis()
+    ax.set_xlim(0, 100)
+    ax.set_xlabel("Share (%)", color=MIDNIGHT)
+    for sp in ("top", "right"):
+        ax.spines[sp].set_visible(False)
+    ax.set_title("One segment carries the catalogue: share of listings vs share of units sold, with the recommended action",
+                 fontsize=11.5, color=MIDNIGHT, loc="left", pad=12, fontweight="bold")
+    fig.savefig(FIGS / "fig17_segment_actions.png", dpi=200, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+
+
 def main():
     nb = json.loads(NB.read_text())
     for idx, (stem, cap) in CELLS.items():
@@ -137,6 +171,7 @@ def main():
         render_code("".join(cell["source"]), f"COM7022_Clustering_25199053.ipynb  |  {cap}", SHOTS / f"{stem}.png")
     workflow()
     prep_flow()
+    segment_actions()
     # Appendix A: every code cell of the notebook, in order, as a screenshot
     app = SHOTS / "appendix"
     app.mkdir(exist_ok=True)

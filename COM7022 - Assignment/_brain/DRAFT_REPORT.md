@@ -1,4 +1,4 @@
-> **SUPERSEDED (2026-10-27):** this draft contains several stale figures (log-skewness, K-Means vs Ward ARI, DBSCAN noise profile, duplicate count). The current report is built by `scripts/04_build_report_docx.py` into `COM7022_Portfolio_25199053_final.docx`, using the numbers in `output/`.
+> **SUPERSEDED (2026-10-27):** this draft contains several stale figures (log-skewness, K-Means vs Ward ARI, DBSCAN noise profile, duplicate count). The current report text is `_brain/REPORT.md` (built into the Word/PDF report and the portal), using the numbers in `output/`.
 
 # COM7022 Coursework Draft: Product Clustering Portfolio
 
