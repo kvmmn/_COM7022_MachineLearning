@@ -289,10 +289,8 @@ def main():
     models = [("K-Means  (k = 4)", True), ("Ward hierarchical", False), ("DBSCAN", False), ("HDBSCAN", False)]
     if (TABLES / "table17_tabclustpfn.csv").exists():
         models.append(("TabClustPFN", False))
-    workflow(models)
-    prep_flow()
-    segment_actions()
-    print("built", len(CELLS), "body screenshots,", n, "appendix screenshots, 3 diagrams")
+    # Figures 15-17 (the diagrams) are now drawn by the notebook itself (section 13); not regenerated here.
+    print("built", len(CELLS), "body screenshots,", n, "appendix screenshots")
 
 
 if __name__ == "__main__":

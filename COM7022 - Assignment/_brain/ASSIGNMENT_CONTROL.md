@@ -107,3 +107,21 @@ Expected result range: 3 to 5 K-Means clusters (e.g. budget slow-sellers, mid-pr
 - Student confirmed scope: tutor-feedback structure applied 2026-10-27 (ROC not required, confirmed by tutor)
 - Student confirmed structure: pending review of `COM7022_Portfolio_25199053_final.docx`
 - Date: 2026-10-27
+
+## Handoff: remaining work (updated 2026-10-27, end of session)
+
+**Standing rules from the student:** (1) the Colab notebook is the only home of analysis code, no new standalone scripts or files without asking; (2) the report file is built separately; (3) random seed is always **274**; (4) final deliverable to the tutor is **one Google Docs file** (no Drive connector in the Claude session, so it goes via a `.docx` the student uploads); (5) ROC is not required (tutor confirmed).
+
+**State of the repo:** report (Word, PDF) and portal build cleanly from `_brain/REPORT.md`; notebook has 81 cells and was executed locally after the last edit; PR #4 is open and safe to merge.
+
+| # | Task | Status | Notes |
+|---|---|---|---|
+| 5 | Consolidate code into the Colab notebook | **In progress** | Done: diagrams (Figures 15-17) now drawn by notebook section 13; script 03 no longer draws them. Left: (a) merge `02_build_review_html.py`, `03_build_report_assets.py` (code screenshots only), `04_build_report_docx.py` and `report_source.py` into ONE `scripts/build_report.py` (rename the three clashing names: `inline`, `build`, `main`; palette constants in 03 clash with the DOCX ones); (b) delete `01_build_notebook.py` (the notebook is now edited directly); (c) update README. |
+| 4 | Seed 274 everywhere | Pending | Needs the notebook to be re-run on Colab; then every number in `REPORT.md` re-verified; make cluster labels canonical (order by median units sold) so IDs and colours stay stable. |
+| 7 | Rewrite the critical evaluation (section 7) | Pending | First-principles, non-obvious conclusions, human voice; agree key arguments with the student first; use seed-274 numbers. |
+| 1 | Install Carlito font in the notebook | Pending | Colab falls back to DejaVu Sans; guarded `apt-get install fonts-crosextra-carlito` plus matplotlib font registration. |
+| 3 | Raise the visual design to a much higher graphic level | Pending | Agree direction first (palette, chart types, what "standout" means), prototype 2-3 key figures, then roll out; keep colour-blind-safe and greyscale-readable. |
+| 2 | Review visuals with the student | Pending | Also: the `colab-run-oct27` folder is not in the repo; ask where it is. |
+| 6 | Google Docs version for the tutor | Pending (last) | Replace the static-page-number contents page with a real TOC field or linked headings; test the import; decide whether the 55-screenshot code appendix stays inside or is linked; share with Commenter access. |
+
+**Suggested order:** 5, 4, 7, 1, 3 and 2 together, then 6.
