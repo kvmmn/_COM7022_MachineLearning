@@ -15,7 +15,7 @@ Assignment: **Product Segmentation and Performance Clustering (Portfolio)**
 
 **Single source of truth:** all report text lives in `COM7022 - Assignment/_brain/REPORT.md`. The Word/PDF report and the GitHub Pages portal are both generated from it, so they always match.
 
-**Rebuild order:** run the notebook, then `scripts/03_build_report_assets.py` (code screenshots and diagrams), `04_build_report_docx.py` (Word + PDF) and `02_build_review_html.py` (portal).
+**Code layout:** all analysis code, figures, tables and diagrams live in the Colab notebook. The only script is `COM7022 - Assignment/scripts/build_report.py`, which assembles the deliverables from the notebook outputs (code screenshots, Word + PDF report, portal). **Rebuild:** run the notebook, then `python "COM7022 - Assignment/scripts/build_report.py"` (needs LibreOffice and poppler; optional argument `shots`, `docx` or `html` runs one step).
 
 ---
 
@@ -29,7 +29,7 @@ Assignment: **Product Segmentation and Performance Clustering (Portfolio)**
 | `COM7022 - Code Space/` | Seminar notebooks, Colab activities, and reference code |
 | `COM7022 - Lessons/` | Module lecture slides, transcripts, and reading material |
 | `COM7022 - eBooks/` | Reference textbooks |
-| `index.html` | GitHub Pages copy of the final report with interactive cluster explorer (built by `scripts/02_build_review_html.py`) |
+| `index.html` | GitHub Pages copy of the final report with interactive cluster explorer (built by `scripts/build_report.py`) |
 
 ---
 

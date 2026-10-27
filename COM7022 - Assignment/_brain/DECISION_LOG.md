@@ -73,3 +73,8 @@
 ## D16: Code consolidation, step 1 (2026-10-27)
 - **Choice:** The three report diagrams (workflow, data-preparation flow, segment actions) are now drawn by notebook section 13, with the same palette, type sizes and print size as every other figure. The notebook was edited directly and re-executed (81 cells); it is the source, not `01_build_notebook.py`.
 - **Why:** The student wants one code home (the Colab notebook) and fewer files. Code screenshots and the Word/PDF/portal assembly are build steps, not analysis, and stay in a single separate report builder (merge still to do, see the handoff list in `ASSIGNMENT_CONTROL.md`).
+
+## D17: One builder script (2026-10-27)
+- **Choice:** `scripts/01` to `04` and `report_source.py` are merged into a single `scripts/build_report.py` and deleted. Code screenshots, the Word/PDF report and the portal are three steps of that one file; nothing else is a script. D15 and D16 above refer to the old script names for history.
+- **Evidence:** The rebuilt report is identical to the previous build: same Word text, same structure (342 paragraphs, 28 tables, 84 images), no difference in the PDF text, and unchanged code screenshots.
+- **Rule:** no new standalone scripts or files; analysis code is changed in the notebook only.

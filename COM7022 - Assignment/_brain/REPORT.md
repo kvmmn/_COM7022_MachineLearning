@@ -1,5 +1,5 @@
-<!-- Master source of the COM7022 report. Built into the Word/PDF report (scripts/04_build_report_docx.py)
-     and the GitHub Pages portal (scripts/02_build_review_html.py). Every number is taken from output/ (notebook run).
+<!-- Master source of the COM7022 report. Built into the Word/PDF report and the GitHub Pages portal
+     by scripts/build_report.py. Every number is taken from output/ (notebook run).
      Directives: ::: part | ::: figure stem | caption | ::: shot stem | caption | ::: table key | ::: callout Title ... :::
      ::: kpis | ::: recs | ::: explorer | ::: appendix | $$latex$$ | [[key]] = cross-reference | <!-- count:x --> = word-count bucket -->
 
