@@ -1,4 +1,4 @@
 check,ARI
-K-Means across 10 seeds (mean ARI),0.984
-z-score vs min-max scaling (ARI),0.492
-with vs without top 1% sellers (ARI),0.937
+K-Means across 10 seeds (mean ARI),0.964
+z-score vs min-max scaling (ARI),0.494
+with vs without top 1% sellers (ARI),0.943

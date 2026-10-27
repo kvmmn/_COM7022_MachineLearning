@@ -1,0 +1,4 @@
+max_depth,rules (leaves),cv_accuracy
+2,4,0.712
+3,8,0.898
+4,16,0.919

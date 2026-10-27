@@ -26,12 +26,12 @@
       "clusters": 4,
       "noise_pct": 0.0,
       "silhouette": 0.307,
-      "davies_bouldin": 1.015,
+      "davies_bouldin": 1.013,
       "calinski_harabasz": 503.3,
-      "stability_ARI_mean": 0.932,
-      "stability_ARI_sd": 0.025,
-      "smallest_cluster_pct": 22.0,
-      "largest_cluster_pct": 31.3
+      "stability_ARI_mean": 0.929,
+      "stability_ARI_sd": 0.033,
+      "smallest_cluster_pct": 21.7,
+      "largest_cluster_pct": 31.4
     },
     {
       "model": "Hierarchical (Ward)",
@@ -40,8 +40,8 @@
       "silhouette": 0.253,
       "davies_bouldin": 1.257,
       "calinski_harabasz": 402.9,
-      "stability_ARI_mean": 0.481,
-      "stability_ARI_sd": 0.084,
+      "stability_ARI_mean": 0.48,
+      "stability_ARI_sd": 0.063,
       "smallest_cluster_pct": 16.8,
       "largest_cluster_pct": 35.9
     },
@@ -53,7 +53,7 @@
       "davies_bouldin": 1.172,
       "calinski_harabasz": 3.5,
       "stability_ARI_mean": 0.749,
-      "stability_ARI_sd": 0.063,
+      "stability_ARI_sd": 0.068,
       "smallest_cluster_pct": 0.4,
       "largest_cluster_pct": 90.7
     },
@@ -64,8 +64,8 @@
       "silhouette": 0.48,
       "davies_bouldin": 0.785,
       "calinski_harabasz": 476.0,
-      "stability_ARI_mean": 0.705,
-      "stability_ARI_sd": 0.147,
+      "stability_ARI_mean": 0.745,
+      "stability_ARI_sd": 0.101,
       "smallest_cluster_pct": 13.5,
       "largest_cluster_pct": 39.4
     },
@@ -76,8 +76,8 @@
       "silhouette": 0.326,
       "davies_bouldin": 1.261,
       "calinski_harabasz": 497.6,
-      "stability_ARI_mean": 0.966,
-      "stability_ARI_sd": 0.024,
+      "stability_ARI_mean": 0.967,
+      "stability_ARI_sd": 0.022,
       "smallest_cluster_pct": 41.1,
       "largest_cluster_pct": 58.9
     },
@@ -88,8 +88,8 @@
       "silhouette": 0.152,
       "davies_bouldin": 1.71,
       "calinski_harabasz": 278.7,
-      "stability_ARI_mean": 0.933,
-      "stability_ARI_sd": 0.036,
+      "stability_ARI_mean": 0.926,
+      "stability_ARI_sd": 0.027,
       "smallest_cluster_pct": 14.1,
       "largest_cluster_pct": 40.8
     }
@@ -97,77 +97,85 @@
   "sensitivity": [
     {
       "check": "K-Means across 10 seeds (mean ARI)",
-      "ARI": 0.984
+      "ARI": 0.964
     },
     {
       "check": "z-score vs min-max scaling (ARI)",
-      "ARI": 0.492
+      "ARI": 0.494
     },
     {
       "check": "with vs without top 1% sellers (ARI)",
-      "ARI": 0.937
+      "ARI": 0.943
     }
   ],
-  "kmeans_ward_ari": 0.411,
+  "kmeans_ward_ari": 0.408,
   "profiles": [
     {
       "kmeans": 0,
-      "listings": 219,
-      "share_of_listings_pct": 22.0,
-      "median_price_usd": 68.99,
-      "median_units_sold": 43.0,
-      "mean_units_sold": 131.0,
-      "share_of_units_sold_pct": 3.7,
+      "listings": 226,
+      "share_of_listings_pct": 22.7,
+      "median_price_usd": 67.14,
+      "median_units_sold": 42.0,
+      "mean_units_sold": 129.0,
+      "share_of_units_sold_pct": 3.8,
       "median_stock_level": 11.0,
       "pct_last_one": 0.0,
-      "pct_ships_from_us": 84.9,
+      "pct_ships_from_us": 84.1,
+      "pct_at_stock_ceiling": 54.0,
+      "share_of_revenue_proxy_pct": 9.5,
       "median_days_since_update": 2.1,
-      "top_product_type": "Eau de Parfum (45.2%)",
+      "top_product_type": "Eau de Parfum (43.8%)",
       "top_brands": "Giorgio Armani, Paco Rabanne, Yves Saint Laurent"
     },
     {
       "kmeans": 1,
-      "listings": 224,
-      "share_of_listings_pct": 22.5,
-      "median_price_usd": 18.99,
+      "listings": 216,
+      "share_of_listings_pct": 21.7,
+      "median_price_usd": 18.1,
       "median_units_sold": 30.0,
       "mean_units_sold": 61.0,
-      "share_of_units_sold_pct": 1.8,
+      "share_of_units_sold_pct": 1.7,
       "median_stock_level": 11.0,
       "pct_last_one": 0.0,
-      "pct_ships_from_us": 92.0,
+      "pct_ships_from_us": 93.1,
+      "pct_at_stock_ceiling": 63.4,
+      "share_of_revenue_proxy_pct": 0.8,
       "median_days_since_update": 3.1,
-      "top_product_type": "Eau de Toilette (37.9%)",
+      "top_product_type": "Eau de Toilette (37.0%)",
       "top_brands": "Unbranded, Lattafa, Ralph Lauren"
     },
     {
       "kmeans": 2,
       "listings": 242,
       "share_of_listings_pct": 24.3,
-      "median_price_usd": 29.94,
-      "median_units_sold": 952.0,
-      "mean_units_sold": 2934.0,
-      "share_of_units_sold_pct": 92.3,
+      "median_price_usd": 29.76,
+      "median_units_sold": 918.0,
+      "mean_units_sold": 2883.0,
+      "share_of_units_sold_pct": 90.7,
       "median_stock_level": 11.0,
-      "pct_last_one": 1.2,
+      "pct_last_one": 0.4,
       "pct_ships_from_us": 99.6,
+      "pct_at_stock_ceiling": 64.0,
+      "share_of_revenue_proxy_pct": 83.2,
       "median_days_since_update": 1.1,
-      "top_product_type": "Eau de Toilette (67.8%)",
+      "top_product_type": "Eau de Toilette (67.4%)",
       "top_brands": "Armaf, Ralph Lauren, Giorgio Armani"
     },
     {
       "kmeans": 3,
-      "listings": 312,
-      "share_of_listings_pct": 31.3,
-      "median_price_usd": 39.99,
+      "listings": 313,
+      "share_of_listings_pct": 31.4,
+      "median_price_usd": 40.95,
       "median_units_sold": 16.0,
-      "mean_units_sold": 54.0,
-      "share_of_units_sold_pct": 2.2,
+      "mean_units_sold": 95.0,
+      "share_of_units_sold_pct": 3.8,
       "median_stock_level": 3.0,
-      "pct_last_one": 14.1,
+      "pct_last_one": 14.7,
       "pct_ships_from_us": 88.5,
+      "pct_at_stock_ceiling": 0.0,
+      "share_of_revenue_proxy_pct": 6.4,
       "median_days_since_update": 1.6,
-      "top_product_type": "Eau de Toilette (39.1%)",
+      "top_product_type": "Eau de Toilette (38.7%)",
       "top_brands": "Giorgio Armani, Paco Rabanne, Ralph Lauren"
     }
   ]

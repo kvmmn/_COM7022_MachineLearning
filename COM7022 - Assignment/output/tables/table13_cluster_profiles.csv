@@ -1,5 +1,5 @@
-kmeans,listings,share_of_listings_pct,median_price_usd,median_units_sold,mean_units_sold,share_of_units_sold_pct,median_stock_level,pct_last_one,pct_ships_from_us,median_days_since_update,top_product_type,top_brands
-0,219,22.0,68.99,43.0,131.0,3.7,11.0,0.0,84.9,2.1,Eau de Parfum (45.2%),"Giorgio Armani, Paco Rabanne, Yves Saint Laurent"
-1,224,22.5,18.99,30.0,61.0,1.8,11.0,0.0,92.0,3.1,Eau de Toilette (37.9%),"Unbranded, Lattafa, Ralph Lauren"
-2,242,24.3,29.94,952.0,2934.0,92.3,11.0,1.2,99.6,1.1,Eau de Toilette (67.8%),"Armaf, Ralph Lauren, Giorgio Armani"
-3,312,31.3,39.99,16.0,54.0,2.2,3.0,14.1,88.5,1.6,Eau de Toilette (39.1%),"Giorgio Armani, Paco Rabanne, Ralph Lauren"
+kmeans,listings,share_of_listings_pct,median_price_usd,median_units_sold,mean_units_sold,share_of_units_sold_pct,median_stock_level,pct_last_one,pct_ships_from_us,pct_at_stock_ceiling,share_of_revenue_proxy_pct,median_days_since_update,top_product_type,top_brands
+0,226,22.7,67.14,42.0,129.0,3.8,11.0,0.0,84.1,54.0,9.5,2.1,Eau de Parfum (43.8%),"Giorgio Armani, Paco Rabanne, Yves Saint Laurent"
+1,216,21.7,18.1,30.0,61.0,1.7,11.0,0.0,93.1,63.4,0.8,3.1,Eau de Toilette (37.0%),"Unbranded, Lattafa, Ralph Lauren"
+2,242,24.3,29.76,918.0,2883.0,90.7,11.0,0.4,99.6,64.0,83.2,1.1,Eau de Toilette (67.4%),"Armaf, Ralph Lauren, Giorgio Armani"
+3,313,31.4,40.95,16.0,95.0,3.8,3.0,14.7,88.5,0.0,6.4,1.6,Eau de Toilette (38.7%),"Giorgio Armani, Paco Rabanne, Ralph Lauren"
