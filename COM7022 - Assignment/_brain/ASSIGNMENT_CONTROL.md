@@ -128,6 +128,24 @@ Expected result range: 3 to 5 K-Means clusters (e.g. budget slow-sellers, mid-pr
 
 **Suggested order:** the Colab re-run (task 9, which also confirms task 1), then 3 and 2 together, then 6, then 8 (tasks 5, 4 and 7 are done).
 
+## Open decisions and on-hold items (noted 2026-10-27, work paused at this stage by the student)
+
+**On hold:** no further changes until the student decides. The student asked only to note what must be decided and that visuals and text must be brought into line.
+
+**Principle:** every figure and table must agree with the sentences that cite it. Where they disagree, decide per case; the student's preference is to fix the text and caption first, and change a figure only if that is clearly better. Tracked as the audit task below.
+
+| # | Decision or item | Options / state |
+|---|---|---|
+| D-1 | Figure 12 and the comparison paragraph (section 4.7) | The figure has six bars but the text compares three. A new paragraph and caption that walk through the figure were committed on branch `claude/determined-planck-oj1z8y` (no PR yet): **A** keep, **B** revert, **C** rewrite in the student's words. |
+| D-2 | Change Figure 12 itself? | Option: group the bars (four segments, every listing covered: K-Means, Ward, TabClustPFN k = 4; not directly comparable: DBSCAN, HDBSCAN, TabClustPFN auto) and show k under each label. Not done; only if the student wants it. |
+| D-3 | Notebook text | The "Reading the comparison" bullets in the notebook say the same as the old report text. Align after the Colab save, to avoid overwriting it. |
+| D-4 | Colab run | Student ran it; a screenshot of the comparison figure matched the local numbers exactly. Still to confirm: that the copy was saved to GitHub, and that `Carlito font: available` was printed. Then restore the "also executed on Colab" sentence in Appendix A. |
+| D-5 | Report length | About 3,970 words of body text against the 3,000-word guide; the student accepts some overshoot. Decide whether to trim, and what (candidate: section 7.5). |
+| D-6 | Visual direction (tasks 3 and 2) | Mood (magazine-minimal, dashboard-energetic or classic academic), the two or three most important figures to prototype first, and whether the Midnight/Tiffany palette stays fixed. |
+| D-7 | Tutor email | Text draft only, below; needs the tutor's name, language and tone, and the Docs link. |
+
+**Audit task (session list #10):** go through each figure and table, list the claims the text makes about it, check each is visible, then fix text, caption or figure.
+
 ## Draft email to the tutor (text only, to finalise after the Google Docs link exists)
 
 Conditional lines: the reproducibility sentence is true only after the Colab re-run with seed 274 (task 9); the word-count remark must match the final length.
