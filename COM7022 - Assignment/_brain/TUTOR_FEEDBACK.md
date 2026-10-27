@@ -12,7 +12,7 @@
 | 8 | Short explanation of clustering and models | Section 3 |
 | 9 | Several metrics, explain each | Section 4.4 (evaluation framework table + silhouette formula) |
 | 10 | PCA | Section 3.3 |
-| 11 | Critical report: why model, performance, visuals, **ROC** | Section 7; **ROC pending: student to ask tutor** |
+| 11 | Critical report: why model, performance, visuals, **ROC** | Section 7; **ROC not required: tutor confirmed on 2026-10-27** (ROC needs ground-truth labels, which unsupervised clustering does not have) |
 | 12 | Business suggestions | Section 8 (segment-action figure + four recommendation cards) |
 | 13 | Conclusion, future work, insights | Section 10 |
 | 14 | GitHub link in report | Title page and Appendix A |
