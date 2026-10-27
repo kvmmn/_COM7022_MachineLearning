@@ -39,10 +39,11 @@ Assignment: **Product Segmentation and Performance Clustering (Portfolio)**
 - **Data Hygiene:** 1,000 raw listings processed to 997 verified records; deterministic recovery of prices and sales from text; resolution of marketplace inventory censoring (capping at 11); natural log transformation compressing sales skewness from +9.72 to +0.52.
 - **Feature Space:** Log-transformed price, log-transformed sales volume, and inventory availability scale; standardised via z-score scaling.
 - **PCA Dimensionality Analysis:** First two principal components capture 78.7% of total variance (PC1 = 48.6% commercial traction; PC2 = 30.1% price luxury tier).
+- **Random seed:** always 274.
 - **Evaluated Algorithms:** K-Means ($k=4$), Hierarchical Agglomerative Clustering (Ward Linkage), DBSCAN ($\epsilon=0.45, \text{MinPts}=6$), HDBSCAN (min cluster size 30, min samples 6) and the TabClustPFN tabular foundation model (automatic k and k = 4).
-- **Primary Production Model:** K-Means ($k=4$), chosen for superior partition metrics (Silhouette = 0.307; Davies-Bouldin = 1.015; Calinski-Harabasz = 503.3), near-perfect resampling stability ($0.932 \pm 0.025$ ARI), and complete catalogue coverage.
+- **Primary Production Model:** K-Means ($k=4$), chosen for superior partition metrics (Silhouette = 0.307; Davies-Bouldin = 1.013; Calinski-Harabasz = 503.3), near-perfect resampling stability ($0.929 \pm 0.033$ ARI), and complete catalogue coverage.
 - **Discovered Segments:**
-  1. *Cluster 2 (Best-Sellers):* 24.3% of listings driving **92.3% of platform sales volume** (median $29.94, median sales 952 units).
-  2. *Cluster 0 (Prestige Designer):* 22.0% of listings (median $68.99, median sales 43 units).
-  3. *Cluster 1 (Budget Commodities):* 22.5% of listings (median $18.99, median sales 30 units).
-  4. *Cluster 3 (Low-Stock Tail):* 31.3% of listings under critical inventory depletion (median stock 3 units, 14.1% *"Last One"*).
+  1. *Cluster 2 (Best-Sellers):* 24.3% of listings driving **90.7% of platform sales volume** (median $29.76, median sales 918 units).
+  2. *Cluster 0 (Prestige Designer):* 22.7% of listings (median $67.14, median sales 42 units).
+  3. *Cluster 1 (Budget Commodities):* 21.7% of listings (median $18.10, median sales 30 units).
+  4. *Cluster 3 (Low-Stock Tail):* 31.4% of listings under critical inventory depletion (median stock 3 units, 14.7% *"Last One"*).

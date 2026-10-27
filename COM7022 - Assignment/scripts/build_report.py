@@ -182,7 +182,7 @@ def build_tables():
     t["table_ecom"] = (pd.DataFrame([
         ["Covers every listing", "Yes · 0% noise", "Yes · 0% noise", "No · 8.9% noise", "No · 47.0% noise", "Yes · 0% noise"],
         ["Scores new listings instantly", "Yes · nearest centroid", "No · rebuild tree", "Partly", "Partly", "Partly · re-run (~3 s)"],
-        ["Stable between refreshes", "Yes · ARI 0.93", "No · ARI 0.48", "Partly · 0.75", "Partly · 0.71", "Yes · ARI 0.93–0.97"],
+        ["Stable between refreshes", "Yes · ARI 0.93", "No · ARI 0.48", "Partly · 0.75", "Partly · 0.75", "Yes · ARI 0.93–0.97"],
         ["Scales to millions of listings", "Yes · linear", "No · quadratic", "Partly", "Partly", "No · context limit"],
         ["Explainable to managers", "Yes · four profiles", "Partly", "No · one group", "No · half noise", "Partly · black box"],
         ["Recommended role", "Production model", "Cross-check", "Anomaly flag", "Data-quality probe", "Check on k"],
@@ -194,24 +194,24 @@ def build_tables():
 HIGHLIGHT = {"table_kscan": 2, "table_comparison": 0}   # row to emphasise (chosen k / chosen model)
 
 KPIS = [
-    ("Core revenue engine", "92.3%", "of units sold come from 24.3% of listings (Cluster 2)", True),
-    ("Inventory risk", "31.3%", "of listings sit in the low-stock tail (Cluster 3)", False),
-    ("Model stability", "0.932", "K-Means bootstrap ARI over 30 resamples", False),
+    ("Core revenue engine", "90.7%", "of units sold come from 24.3% of listings (Cluster 2)", True),
+    ("Inventory risk", "31.4%", "of listings sit in the low-stock tail (Cluster 3)", False),
+    ("Model stability", "0.929", "K-Means bootstrap ARI over 30 resamples", False),
     ("PCA variance", "78.7%", "retained by the first two components", False),
 ]
 
 RECS = [
     ("c2", "Protect · Cluster 2", "Secure the revenue engine",
-     "92.3% of units sold from 24.3% of listings.",
+     "90.7% of units sold from 24.3% of listings.",
      "Automated restock alerts below 10 units, priority search placement and fulfilment SLAs for these sellers."),
     ("c0", "Grow · Cluster 0", "Monetise the premium tier",
-     "Highest prices (median $68.99) with steady, slow demand.",
+     "Highest prices (median $67.14) with steady, slow demand.",
      "Bundle with best-sellers on product pages and invest in premium content rather than discounting."),
     ("c1", "Reposition · Cluster 1", "Stop subsidising weak demand",
-     "Cheapest offers (median $18.99) yet only 1.8% of volume.",
+     "Cheapest offers (median $18.10) yet only 1.7% of volume.",
      "End paid promotion of unbranded items and reallocate budget to proven brands."),
     ("c3", "Audit · Cluster 3", "Clean up the low-stock tail",
-     "31.3% of listings, median stock of 3, 14.1% at 'Last One'.",
+     "31.4% of listings, median stock of 3, 14.7% at 'Last One'.",
      "30-day merchant restock notices; delist listings that remain empty and unsold after 60 days."),
 ]
 
