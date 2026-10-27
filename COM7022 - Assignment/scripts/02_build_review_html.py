@@ -739,8 +739,7 @@ def build(prefix):
 <section id="overview" class="hero-banner">
   <div class="hero-pre">Machine Learning Portfolio · MSc Data Science · Arden University Berlin</div>
   <h1 class="hero-title">{rs.TITLE}</h1>
-  <p class="hero-subtitle">An end-to-end unsupervised machine learning investigation comparing K-Means, Ward hierarchical clustering
-  and DBSCAN across 1,000 marketplace listings, translated into evidence-based actions for inventory protection and catalogue strategy.</p>
+  <p class="hero-subtitle">{rs.SUBTITLE}</p>
   <div class="hero-meta-grid">
     <div class="meta-item"><span class="meta-label">Student ID</span><span class="meta-value">{rs.STUDENT_ID}</span></div>
     <div class="meta-item"><span class="meta-label">Module</span><span class="meta-value">COM7022 Machine Learning</span></div>

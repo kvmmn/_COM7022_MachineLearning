@@ -50,3 +50,11 @@
 - **Choice:** K-Means selected as primary model.
 - **Evidence:** Superior internal validation (silhouette 0.307 vs Ward 0.253; DBI 1.015 vs 1.257); exceptional resampling stability (ARI 0.932 vs Ward 0.481); full partition with 0% noise (unlike DBSCAN's 8.9% noise and 91% single cluster); linear inference for scoring incoming listings.
 - **Role for other models:** Ward used as a hierarchical cross-check (ARI = 0.411); DBSCAN used as an operational outlier detector.
+
+## D12: HDBSCAN as a fourth technique (2026-10-27)
+- **Choice:** HDBSCAN (scikit-learn 1.3+) with min_samples = 6 (same as DBSCAN) and min_cluster_size = 30 (about 3% of listings, the smallest group worth its own action).
+- **Evidence:** With min_samples = 6, every min_cluster_size from 20 to 100 gives the same result: 2 clusters, 47.0% noise. The larger cluster is 89.1% listings at the censored stock ceiling (41.5% of all listings sit at 11); the smaller is a low-stock group (median 3). Jittering stock by ±0.5 or dropping stock still leaves about 40-50% noise.
+- **Reading:** Silhouette 0.480 and DBI 0.785 are computed on the 53% of listings kept, so they are not comparable with full-coverage models (hatched in Figure 12). HDBSCAN confirms the continuum and exposes a data-quality effect; it is kept as a data-quality probe, not a segmentation.
+
+## D13: Print-first visual system (2026-10-27)
+- **Choice:** All figures, diagrams and code screenshots are drawn at final printed size (6.6 in text width, or 4.6 in narrow) at 300 dpi, in Carlito (metric-compatible with the report's Calibri), with fixed type sizes (8.5 pt labels, 7.5 pt ticks, 9 pt panel titles) and one colour per segment (0 steel blue, 1 ochre, 2 tiffany, 3 terracotta). The Word report inserts each image at native size, so type is identical across figures. The PDF is the primary deliverable; the HTML portal is secondary.
