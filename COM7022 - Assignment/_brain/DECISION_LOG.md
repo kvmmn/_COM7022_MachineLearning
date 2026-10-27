@@ -30,7 +30,7 @@
 
 ## D07: Logarithmic transformation of price and sales
 - **Choice:** Apply `log(1 + x)` to both `price` and `sold`.
-- **Evidence:** Raw skewness is 2.18 for price and 11.23 for units sold (max sold = 54,052 vs median = 49.5). After log transform, skewness falls to -0.08 and +0.25 respectively, creating near-symmetric distributions where Euclidean distances are meaningful.
+- **Evidence:** Skewness after cleaning is 1.97 for price and 9.72 for units sold (max sold = 54,052 vs median = 49.5). After log transform, skewness falls to 0.09 and 0.52 respectively, creating near-symmetric distributions where Euclidean distances are meaningful.
 - **Alternative considered:** Dropping high-volume sellers as outliers. Rejected because top-selling products are commercially critical. Log transformation retains them without letting them distort distance calculations.
 
 ## D08: Feature selection (Set B)
@@ -49,4 +49,4 @@
 ## D11: Final model selection
 - **Choice:** K-Means selected as primary model.
 - **Evidence:** Superior internal validation (silhouette 0.307 vs Ward 0.253; DBI 1.015 vs 1.257); exceptional resampling stability (ARI 0.932 vs Ward 0.481); full partition with 0% noise (unlike DBSCAN's 8.9% noise and 91% single cluster); linear inference for scoring incoming listings.
-- **Role for other models:** Ward used as a hierarchical cross-check (ARI = 0.468); DBSCAN used as an operational outlier detector.
+- **Role for other models:** Ward used as a hierarchical cross-check (ARI = 0.411); DBSCAN used as an operational outlier detector.

@@ -18,8 +18,8 @@ Frozen from execution of `COM7022_Clustering_25199053.ipynb` (random seed 42) on
   - 47 listings with "Last One" coded as **1**.
   - 62 listings with "Limited quantity available" or lots imputed with median (**11**), flagged via `stock_imputed = 1`.
 - Skewness reduction:
-  - Price: raw skewness **2.18** -> `log(1 + price)` skewness **-0.08**.
-  - Units sold: raw skewness **11.23** -> `log(1 + sold)` skewness **0.25**.
+  - Price: skewness **1.97** -> `log(1 + price)` skewness **0.09**.
+  - Units sold: skewness **9.72** -> `log(1 + sold)` skewness **0.52**.
 
 ## 2. Selected features
 
@@ -48,11 +48,11 @@ Spearman rank correlations:
 | Smallest cluster share (%) | **22.0%** (219) | **16.8%** (167) | **0.4%** (4) |
 | Largest cluster share (%) | **31.3%** (312) | **35.9%** (358) | **90.7%** (904) |
 
-Agreement between K-Means and Ward: Adjusted Rand Index = **0.468**.
+Agreement between K-Means and Ward: Adjusted Rand Index = **0.411**.
 
 ## 5. Sensitivity and robustness checks
 
-- K-Means across 10 random seeds (mean pairwise ARI): **0.984** (min **0.936**).
+- K-Means across 10 random seeds (mean pairwise ARI): **0.984** (min **0.951**).
 - z-score scaling vs min-max scaling (ARI): **0.492** (weighting choice affects boundaries).
 - With vs without top 1% volume outliers (ARI on remaining 987 rows): **0.937** (high-volume sellers do not distort the clustering on the log scale).
 

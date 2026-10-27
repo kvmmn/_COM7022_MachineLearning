@@ -33,7 +33,7 @@ The full interactive assessment draft (Task 1 Technical Project & Task 2 Executi
 ## Technical Summary
 
 - **Problem:** E-commerce multi-seller fragrance catalogue segmentation based on physical characteristics and sales performance.
-- **Data Hygiene:** 1,000 raw listings processed to 997 verified records; deterministic recovery of prices and sales from text; resolution of marketplace inventory censoring (capping at 11); natural log transformation compressing sales skewness from +11.23 to +0.25.
+- **Data Hygiene:** 1,000 raw listings processed to 997 verified records; deterministic recovery of prices and sales from text; resolution of marketplace inventory censoring (capping at 11); natural log transformation compressing sales skewness from +9.72 to +0.52.
 - **Feature Space:** Log-transformed price, log-transformed sales volume, and inventory availability scale; standardised via z-score scaling.
 - **PCA Dimensionality Analysis:** First two principal components capture 78.7% of total variance (PC1 = 48.6% commercial traction; PC2 = 30.1% price luxury tier).
 - **Evaluated Algorithms:** K-Means ($k=4$), Hierarchical Agglomerative Clustering (Ward Linkage), and DBSCAN ($\epsilon=0.45, \text{MinPts}=6$).
