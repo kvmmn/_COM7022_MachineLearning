@@ -3,6 +3,9 @@
 
 Keeping the notebook source in one script makes it easy to diff, review and rebuild.
 Run:  .venv/bin/python "COM7022 - Assignment/scripts/01_build_notebook.py"
+
+Note: this writes a notebook WITHOUT outputs. The copy committed on main was executed on Google Colab
+(commit 8acdcc8, with all outputs); rebuilding overwrites it, so re-run it on Colab and save a copy to GitHub again.
 """
 
 from pathlib import Path
@@ -24,6 +27,8 @@ def code(text):
 
 
 # ---------------------------------------------------------------------------
+md(r"""<a href="https://colab.research.google.com/github/kvmmn/_COM7022_MachineLearning/blob/main/COM7022%20-%20Assignment/COM7022_Clustering_25199053.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>""")
+
 md(r"""
 # COM7022 Machine Learning: Product Clustering for an E-commerce Catalogue
 

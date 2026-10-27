@@ -43,21 +43,28 @@ FONT_BOLD = "/usr/share/fonts/truetype/crosextra/Carlito-Bold.ttf"
 plt.rcParams.update({"font.family": "sans-serif", "font.sans-serif": ["Carlito", "Calibri", "Arial", "DejaVu Sans"],
                      "font.size": 8.5, "savefig.dpi": DPI, "figure.dpi": 100})
 
-# notebook cell index -> (file stem, label shown in the header bar)
+# first line of the notebook cell -> (file stem, label shown in the header bar).
+# Cells are found by content, so extra cells added by Colab (such as the "Open in Colab" badge) cannot shift them.
 CELLS = {
-    5:  ("code01_import_data", "Data import"),
-    9:  ("code02_missing_values", "Missing-value audit"),
-    17: ("code03_price_recovery", "Cleaning: recover price"),
-    18: ("code04_sold_recovery", "Cleaning: recover units sold"),
-    19: ("code05_stock_level", "Cleaning: stock level and censoring"),
-    20: ("code06_product_type", "Cleaning: normalise product type"),
-    21: ("code07_log_transform", "Transformation: log(1 + x)"),
-    28: ("code08_scaling", "Scaling: StandardScaler"),
-    30: ("code09_pca", "PCA"),
-    33: ("code10_kmeans_scan", "K-Means: scan k"),
-    40: ("code11_hierarchical", "Hierarchical: four linkages"),
-    46: ("code12_dbscan_kdist", "DBSCAN: k-distance"),
+    'DATA_FILE = "Sales-[5444].csv"': ("code01_import_data", "Data import"),
+    "# Missing values per column, as counts and percentages": ("code02_missing_values", "Missing-value audit"),
+    "df = raw.copy()": ("code03_price_recovery", "Cleaning: recover price"),
+    "# 3.3 Units sold": ("code04_sold_recovery", "Cleaning: recover units sold"),
+    "# 3.4 Stock level": ("code05_stock_level", "Cleaning: stock level and censoring"),
+    "# 3.5 Product type": ("code06_product_type", "Cleaning: normalise product type"),
+    "# 3.10 Transform the skewed": ("code07_log_transform", "Transformation: log(1 + x)"),
+    'FEATURES = ["log_price", "log_sold", "stock_level"]': ("code08_scaling", "Scaling: StandardScaler"),
+    "pca = PCA(random_state=SEED)": ("code09_pca", "PCA"),
+    "k_values = range(2, 11)": ("code10_kmeans_scan", "K-Means: scan k"),
+    "linkage_methods = [": ("code11_hierarchical", "Hierarchical: four linkages"),
+    "MIN_SAMPLES = 2 * len(FEATURES)": ("code12_dbscan_kdist", "DBSCAN: k-distance"),
 }
+
+
+def find_cell(nb, first_line):
+    hits = [c for c in nb["cells"] if c["cell_type"] == "code" and "".join(c["source"]).lstrip().startswith(first_line)]
+    assert len(hits) == 1, (first_line, len(hits))
+    return hits[0]
 
 
 # ----------------------------------------------------------------------------- code screenshots
@@ -269,10 +276,8 @@ def segment_actions():
 
 def main():
     nb = json.loads(NB.read_text())
-    for idx, (stem, cap) in CELLS.items():
-        cell = nb["cells"][idx]
-        assert cell["cell_type"] == "code", (idx, "".join(cell["source"])[:60])
-        render_code("".join(cell["source"]), cap, SHOTS / f"{stem}.png")
+    for first_line, (stem, cap) in CELLS.items():
+        render_code("".join(find_cell(nb, first_line)["source"]), cap, SHOTS / f"{stem}.png")
     n = 0
     for idx, cell in enumerate(nb["cells"]):
         if cell["cell_type"] == "code":
@@ -284,10 +289,8 @@ def main():
     models = [("K-Means  (k = 4)", True), ("Ward hierarchical", False), ("DBSCAN", False), ("HDBSCAN", False)]
     if (TABLES / "table17_tabclustpfn.csv").exists():
         models.append(("TabClustPFN", False))
-    workflow(models)
-    prep_flow()
-    segment_actions()
-    print("built", len(CELLS), "body screenshots,", n, "appendix screenshots, 3 diagrams")
+    # Figures 15-17 (the diagrams) are now drawn by the notebook itself (section 13); not regenerated here.
+    print("built", len(CELLS), "body screenshots,", n, "appendix screenshots")
 
 
 if __name__ == "__main__":
