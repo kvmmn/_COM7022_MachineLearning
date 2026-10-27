@@ -112,21 +112,21 @@ Expected result range: 3 to 5 K-Means clusters (e.g. budget slow-sellers, mid-pr
 
 **Standing rules from the student:** (1) the Colab notebook is the only home of analysis code, no new standalone scripts or files without asking; (2) the report file is built separately; (3) random seed is always **274**; (4) final deliverable to the tutor is **one Google Docs file** (no Drive connector in the Claude session, so it goes via a `.docx` the student uploads); (5) ROC is not required (tutor confirmed).
 
-**State of the repo:** report (Word, PDF) and portal build cleanly from `_brain/REPORT.md` with the single script `scripts/build_report.py`; the notebook has 85 cells and was executed locally (seed 274) after its last edit; the report is about 3,900 words (Task 1: 2,394, Task 2: 1,518); PR #5 is open.
+**State of the repo:** report (Word, PDF) and portal build cleanly from `_brain/REPORT.md` with the single script `scripts/build_report.py`; the notebook has 85 cells and was executed locally (seed 274, Carlito available) after its last edit; the report is about 3,900 words (Task 1: 2,394, Task 2: 1,518); PR #5 is open.
 
 | # | Task | Status | Notes |
 |---|---|---|---|
 | 5 | Consolidate code into the Colab notebook | **Done** | Notebook is the only home of analysis code (diagrams in section 13); `scripts/build_report.py` is the only script (screenshots, Word/PDF, portal); output verified identical to the previous build. |
 | 4 | Seed 274 everywhere | **Done locally; Colab re-run pending** | Notebook re-executed with seed 274, labels made canonical, every number re-verified (D18). Left: re-run on Colab with seed 274 and save to GitHub, then restore the 'also executed on Colab' sentence in Appendix A. |
 | 7 | Rewrite the critical evaluation (section 7) | **Done, awaiting the student's review** | Rewritten around six arguments (see D19); two new notebook analyses (section 13: rule check and surrogate tree; revenue proxy and stock-ceiling share in the profile table). Report is now about 3,900 words; Task 2 is 1,518. The student may want to cut or push back on individual arguments. |
-| 1 | Install Carlito font in the notebook | Pending | Colab falls back to DejaVu Sans; guarded `apt-get install fonts-crosextra-carlito` plus matplotlib font registration. |
+| 1 | Install Carlito font in the notebook | **Done locally; needs the Colab run (task 9) to confirm** | Guarded `ensure_carlito()` at the top of the style cell: installs `fonts-crosextra-carlito` when missing, registers it with matplotlib, falls back to DejaVu Sans if that fails. Verified here: command syntax and the register-after-install logic. In Colab, check the printed line says `Carlito font: available`. |
 | 9 | Re-run the notebook on Colab with seed 274 and save to GitHub | Pending (after 1) | The Colab copy on main still holds seed-42 outputs. Check printed numbers against the report (K-Means silhouette 0.307, DBI 1.013, stability 0.929 ± 0.033, seed-to-seed ARI 0.964, best-sellers 90.7% of units, TabClustPFN auto k = 2 on 30/30 subsamples), save a copy to GitHub, restore the 'also executed on Colab' sentence in Appendix A, rebuild. |
 | 3 | Raise the visual design to a much higher graphic level | Pending | Agree direction first (palette, chart types, what "standout" means), prototype 2-3 key figures, then roll out; keep colour-blind-safe and greyscale-readable. |
 | 2 | Review visuals with the student | Pending | Also: the `colab-run-oct27` folder is not in the repo; ask where it is. |
 | 6 | Google Docs version for the tutor | Pending (last) | Replace the static-page-number contents page with a real TOC field or linked headings; test the import; decide whether the 55-screenshot code appendix stays inside or is linked; share with Commenter access. |
 | 8 | Email the tutor the Google Docs link and ask for feedback | Pending (after 6) | Text draft only (no Gmail draft, nothing sent); the student sends it. Draft below. Mention the student's own extras: HDBSCAN and TabClustPFN (and what the stock-censoring finding shows), the Colab run that reproduced every number, stability and sensitivity testing, the e-commerce model-fit analysis, the print-ready visuals. Needs: tutor name and email, language and tone, the Docs link with Commenter access. |
 
-**Suggested order:** 1, then the Colab re-run (task 9), then 3 and 2 together, then 6, then 8 (tasks 5, 4 and 7 are done).
+**Suggested order:** the Colab re-run (task 9, which also confirms task 1), then 3 and 2 together, then 6, then 8 (tasks 5, 4 and 7 are done).
 
 ## Draft email to the tutor (text only, to finalise after the Google Docs link exists)
 
