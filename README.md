@@ -6,13 +6,14 @@ Assignment: **Product Segmentation and Performance Clustering (Portfolio)**
 
 ---
 
-### Coursework Interactive Review Draft (GitHub Pages)
-The full interactive assessment draft (Task 1 Technical Project & Task 2 Executive Report) is published live on GitHub Pages:  
-👉 **[https://kvmmn.github.io/_COM7022_MachineLearning/](https://kvmmn.github.io/_COM7022_MachineLearning/)**
+### Final report and review page
+- **Final report (Word):** [`COM7022 - Assignment/COM7022_Portfolio_25199053_final.docx`](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.docx) and [PDF](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.pdf). Task 1 and Task 2 in one document, about 2,900 words of body text, full code in Appendix A as screenshots.
+- **Review page (GitHub Pages):** [https://kvmmn.github.io/_COM7022_MachineLearning/](https://kvmmn.github.io/_COM7022_MachineLearning/) shows the same report with an interactive segment explorer.
+- **Notebook (Colab-ready):** [`COM7022 - Assignment/COM7022_Clustering_25199053.ipynb`](COM7022%20-%20Assignment/COM7022_Clustering_25199053.ipynb)
+- **Dataset:** [`COM7022 - Assignment/Sales-[5444].csv`](COM7022%20-%20Assignment/Sales-%5B5444%5D.csv)
+- **Code screenshots:** `COM7022 - Assignment/output/screenshots/` (body) and `.../appendix/` (every notebook cell)
 
-- Direct self-contained review file path in repository: [`COM7022 - Assignment/COM7022_Draft_Review_25199053.html`](COM7022%20-%20Assignment/COM7022_Draft_Review_25199053.html)
-- Executable Colab-ready notebook: [`COM7022 - Assignment/COM7022_Clustering_25199053.ipynb`](COM7022%20-%20Assignment/COM7022_Clustering_25199053.ipynb)
-- Dataset: [`COM7022 - Assignment/Sales-[5444].csv`](COM7022%20-%20Assignment/Sales-%5B5444%5D.csv)
+**Rebuild order:** run the notebook, then `scripts/03_build_report_assets.py`, `04_build_report_docx.py` and `05_build_review_html.py`.
 
 ---
 
@@ -26,7 +27,7 @@ The full interactive assessment draft (Task 1 Technical Project & Task 2 Executi
 | `COM7022 - Code Space/` | Seminar notebooks, Colab activities, and reference code |
 | `COM7022 - Lessons/` | Module lecture slides, transcripts, and reading material |
 | `COM7022 - eBooks/` | Reference textbooks |
-| `index.html` | Self-contained GitHub Pages portfolio report with interactive cluster explorer |
+| `index.html` | GitHub Pages copy of the final report with interactive cluster explorer (built by `scripts/05_build_review_html.py`) |
 
 ---
 

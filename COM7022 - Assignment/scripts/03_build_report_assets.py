@@ -137,7 +137,17 @@ def main():
         render_code("".join(cell["source"]), f"COM7022_Clustering_25199053.ipynb  |  {cap}", SHOTS / f"{stem}.png")
     workflow()
     prep_flow()
-    print("built", len(CELLS), "code screenshots + 2 flowcharts")
+    # Appendix A: every code cell of the notebook, in order, as a screenshot
+    app = SHOTS / "appendix"
+    app.mkdir(exist_ok=True)
+    n = 0
+    for idx, cell in enumerate(nb["cells"]):
+        if cell["cell_type"] != "code":
+            continue
+        n += 1
+        render_code("".join(cell["source"]), f"COM7022_Clustering_25199053.ipynb  |  code cell {n} (notebook cell {idx})",
+                    app / f"cell{n:02d}.png")
+    print("built", len(CELLS), "code screenshots,", n, "appendix screenshots + 2 flowcharts")
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@
 - Module: COM7022 Machine Learning
 - Assignment: COM7022 Assignment [5444], Portfolio (Task 1 Practical Project + Task 2 Critical Report)
 - Student ID: 25199053
-- Tutor: Not yet recorded
+- Tutor: not named; in-class feedback recorded in `_brain/TUTOR_FEEDBACK.md` (2026-10-27). ROC request pending: student is asking the tutor.
 - Deadline: ~2026-11-17 (student, 2026-10-24: "24 days from now"); confirm exact time on iLearn
 - GitHub: https://github.com/kvmmn/_COM7022_MachineLearning (module folder = repo root, as COM7021); GitHub Pages `index.html` = visual draft review
 - Assessed run: Google Colab (local `.venv` mirrors it for verification only)
@@ -18,7 +18,7 @@
 |---|---|---|---|---|
 | Brief | `[5444] -Machine Learning - COM7022.pdf` | [5444] | Yes | Two tasks, 3000 words, 60/40 split, LO1-LO3 |
 | Rubric | `_brain/COM7022_RUBRIC.md` (supplied by student 2026-10-24) | iLearn | Yes | Single holistic scale; top bands reward correct import, pre-processing, descriptive statistics, correct ML methodology, all processes correct, exceptional judgement |
-| Tutor notes | None found | - | - | - |
+| Tutor notes | `_brain/TUTOR_FEEDBACK.md` (in-class feedback, 2026-10-27) | 2026-10-27 | Yes | Report structure, screenshots, captions with repo paths, flowcharts |
 | Dataset | `Sales-[5444].csv` | 1000 rows x 10 cols | Profiled | Only authorised dataset |
 | Lessons | `COM7022 - Lessons/` L2 (prep, PCA, min-max), L8 (K-Means, elbow, inertia, DBSCAN activity), L9 (hierarchical, 4 linkages, dendrogram, fcluster) | - | Scanned | Taught vocabulary and toolset |
 | Code Space | `Python_Codes/` (Kmeans, KNN, Decision Tree, Colab-style notebooks) | - | Not yet | Taught code style |
@@ -104,6 +104,6 @@ Expected result range: 3 to 5 K-Means clusters (e.g. budget slow-sellers, mid-pr
 
 ## Approval
 
-- Student confirmed scope:
-- Student confirmed structure:
-- Date:
+- Student confirmed scope: tutor-feedback structure applied 2026-10-27 (ROC pending)
+- Student confirmed structure: pending review of `COM7022_Portfolio_25199053_final.docx`
+- Date: 2026-10-27

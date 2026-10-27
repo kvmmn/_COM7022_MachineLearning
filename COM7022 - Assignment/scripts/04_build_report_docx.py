@@ -593,8 +593,21 @@ def references_and_appendix():
                  ("Code screenshots", BASE + "output/screenshots"),
                  ("Interactive review page", "https://kvmmn.github.io/_COM7022_MachineLearning/")):
         p = doc.add_paragraph(); r = p.add_run(f"{k}: "); r.bold = True; p.add_run(v)
-    para("Remaining code screenshots (clustering, hierarchical, DBSCAN and evaluation cells) appear in Sections 3 and 4. "
+    para("The complete Task 1 code follows as screenshots, one per notebook cell, in running order. "
          "The notebook uses fixed random seeds (42), so every figure and table can be regenerated.", counted=False)
+    import json
+    nb = json.loads((ROOT / "COM7022_Clustering_25199053.ipynb").read_text())
+    heading_now, n = None, 0
+    for cell in nb["cells"]:
+        if cell["cell_type"] == "markdown":
+            first = "".join(cell["source"]).strip().split("\n")[0]
+            if first.startswith("## "):
+                heading_now = first[3:]
+                heading(f"A.{heading_now}" if heading_now[0].isdigit() else f"A. {heading_now}", 2)
+        elif cell["cell_type"] == "code":
+            n += 1
+            picture(OUT / "screenshots" / "appendix" / f"cell{n:02d}.png", f"notebook code cell {n}",
+                    f"output/screenshots/appendix/cell{n:02d}.png", 15.5)
     p = doc.add_paragraph(); r = p.add_run("AI use declaration: ")
     r.bold = True
     p.add_run("AI tools were used to help structure and proofread this work. All analysis was run, checked and interpreted by me, "
