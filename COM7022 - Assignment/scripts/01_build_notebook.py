@@ -40,8 +40,9 @@ This notebook groups the product listings in `Sales-[5444].csv` by their charact
 7. Hierarchical clustering
 8. DBSCAN
 9. HDBSCAN
-10. Model comparison and validation
-11. Final model and cluster profiles
+10. TabClustPFN (tabular foundation model)
+11. Model comparison and validation
+12. Final model and cluster profiles
 
 **How to run on Google Colab:** upload `Sales-[5444].csv` into the Colab file panel (or let the upload cell below ask for it), then choose *Runtime > Run all*. All figures and tables are saved into an `output/` folder next to the notebook. Random seeds are fixed so the results repeat.
 """)
@@ -104,7 +105,7 @@ NOISE_GREY = "#A7B4BC"
 # 0 Premium = steel blue, 1 Budget = ochre, 2 Best-sellers = tiffany, 3 Low-stock = terracotta.
 CLUSTER_COLOURS = ["#2F6690", "#C99A2E", TIFFANY_DEEP, "#C8553D", MIDNIGHT]
 MODEL_COLOURS = {"K-Means": MIDNIGHT, "Hierarchical (Ward)": "#2F6690", "DBSCAN": "#8FA3B1",
-                 "HDBSCAN": TIFFANY_DEEP, "TabClustPFN": "#C99A2E"}
+                 "HDBSCAN": TIFFANY_DEEP, "TabClustPFN (auto k)": "#C99A2E", "TabClustPFN (k = 4)": "#E2C37E"}
 ARDEN_CMAP = matplotlib.colors.LinearSegmentedColormap.from_list(
     "arden", [MIST, TIFFANY, TIFFANY_DEEP, MIDNIGHT_SOFT, MIDNIGHT])
 ARDEN_DIVERGING = matplotlib.colors.LinearSegmentedColormap.from_list(
@@ -1012,7 +1013,156 @@ So the more flexible density method confirms, rather than overturns, the DBSCAN 
 
 # ---------------------------------------------------------------------------
 md(r"""
-## 10. Model comparison and validation
+## 10. TabClustPFN (tabular foundation model)
+
+TabClustPFN (Zhao et al., 2026; NeurIPS 2026) is a **prior-fitted network**: a transformer pre-trained on millions of synthetic clustering problems, in the same family as the TabPFN foundation models for tabular data. It is not fitted to this dataset at all. It reads the whole table in context and returns cluster labels, and it can also **predict the number of clusters** itself, in a single forward pass with no tuning.
+
+That makes it a useful independent check on two choices made so far: the number of segments, and whether a modern pre-trained model finds a better partition than K-Means. I run it twice: with automatic k, and with k fixed at 4 for a like-for-like comparison. Inputs are the same three standardised features.
+
+*Set-up note.* The model is not on PyPI, so the next cell fetches the authors' code and pretrained checkpoint (licence CC BY-NC 4.0, used here for non-commercial coursework). The code imports R's `rpy2` only to generate synthetic **pre-training** data; inference never uses it, so a placeholder module that raises an error if called is supplied when R is not installed. If the model cannot be loaded (for example offline), the cell falls back to the labels saved from the assessed run and says so.
+""")
+
+code(r"""
+import sys, subprocess, importlib, importlib.util, tempfile, time
+
+TCP_DIR = Path(os.environ.get("TABCLUSTPFN_DIR", "TabClustPFN"))
+TCP_CKPT = Path(os.environ.get("TABCLUSTPFN_CKPT", str(TCP_DIR / "tabclustpfn.ckpt")))
+TCP_CKPT_ID = "1GzZBgVXwOB8y9JM89xa7ln-la6v2sUO3"           # official checkpoint (Google Drive, from the README)
+TCP_SAVED = OUTPUT_DIR / "tabclustpfn_labels.csv"           # labels from the assessed run (fallback)
+
+
+def ensure_rpy2_placeholder():
+    # rpy2 is only used to synthesise pre-training data; inference does not call it
+    try:
+        importlib.import_module("rpy2.robjects")
+        return
+    except Exception:
+        pass
+    stub = Path(tempfile.gettempdir()) / "tabclustpfn_stubs" / "rpy2" / "robjects"
+    stub.mkdir(parents=True, exist_ok=True)
+    (stub.parent / "__init__.py").write_text("")
+    (stub / "__init__.py").write_text(
+        "class _Unavailable:\n"
+        "    def __getattr__(self, name):\n"
+        "        raise RuntimeError('rpy2/R is only needed to generate TabClustPFN pre-training data')\n"
+        "    def __call__(self, *a, **k):\n"
+        "        raise RuntimeError('rpy2/R is only needed to generate TabClustPFN pre-training data')\n"
+        "r = _Unavailable()\nNULL = None\ndefault_converter = None\n"
+        "FloatVector = IntVector = StrVector = _Unavailable()\n")
+    (stub / "packages.py").write_text("from . import _Unavailable as importr\n")
+    (stub / "conversion.py").write_text("from . import _Unavailable as localconverter\n")
+    sys.path.insert(0, str(stub.parent.parent))
+
+
+tcp_model = None
+try:
+    if not TCP_DIR.exists():
+        subprocess.run(["git", "clone", "--depth", "1", "https://github.com/Tianqi-Zhao/TabClustPFN.git", str(TCP_DIR)],
+                       check=True)
+    for package in ["torch", "einops", "transformers", "tensorboard", "psutil", "tqdm"]:
+        if importlib.util.find_spec(package) is None:
+            subprocess.run([sys.executable, "-m", "pip", "install", "-q", package], check=True)
+    if not TCP_CKPT.exists():
+        if importlib.util.find_spec("gdown") is None:
+            subprocess.run([sys.executable, "-m", "pip", "install", "-q", "gdown"], check=True)
+        subprocess.run([sys.executable, "-m", "gdown", TCP_CKPT_ID, "-O", str(TCP_CKPT)], check=True)
+    ensure_rpy2_placeholder()
+    sys.path.insert(0, str(TCP_DIR))
+    import torch
+    from cluster import load_model as tcp_load_model, cluster as tcp_cluster
+    torch.manual_seed(SEED)
+    TCP_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    tcp_model = tcp_load_model(str(TCP_CKPT), TCP_DEVICE)
+    print("TabClustPFN loaded on", TCP_DEVICE)
+except Exception as error:
+    print("TabClustPFN could not be loaded here (" + type(error).__name__ + ": " + str(error)[:120] + ").")
+    print("Falling back to the labels saved from the assessed run:", TCP_SAVED)
+
+
+def fit_tabclustpfn(data, k=None):
+    labels, k_used = tcp_cluster(tcp_model, np.asarray(data), num_clusters=k, device=TCP_DEVICE)
+    return np.asarray(labels)
+""")
+
+code(r"""
+if tcp_model is not None:
+    start = time.time()
+    labels_auto, k_auto = tcp_cluster(tcp_model, X, num_clusters=None, device=TCP_DEVICE)
+    seconds_auto = time.time() - start
+    labels_k4 = fit_tabclustpfn(X, K_FINAL)
+    df["tabclustpfn"] = np.asarray(labels_auto)
+    df["tabclustpfn_k4"] = labels_k4
+    df[["tabclustpfn", "tabclustpfn_k4"]].to_csv(TCP_SAVED, index=False)
+    print("Automatic k predicted by the model:", k_auto, "| inference time:", round(seconds_auto, 1), "s")
+else:
+    saved = pd.read_csv(TCP_SAVED)
+    df["tabclustpfn"], df["tabclustpfn_k4"] = saved["tabclustpfn"].values, saved["tabclustpfn_k4"].values
+    k_auto = df["tabclustpfn"].nunique()
+
+# Two robustness checks specific to an in-context model: does k stay the same on subsamples,
+# and does the order of the rows matter?
+tcp_checks = {}
+if tcp_model is not None:
+    rng = np.random.default_rng(SEED)
+    sub_k = []
+    for run in range(30):
+        idx = rng.choice(len(X), size=int(0.8 * len(X)), replace=False)
+        sub_k.append(tcp_cluster(tcp_model, X[idx], num_clusters=None, device=TCP_DEVICE)[1])
+    perm = rng.permutation(len(X))
+    shuffled = fit_tabclustpfn(X[perm])
+    restored = np.empty_like(shuffled)
+    restored[perm] = shuffled
+    tcp_checks = {"predicted_k": int(k_auto),
+                  "subsamples_with_same_k": int(sum(k == k_auto for k in sub_k)),
+                  "ari_row_shuffle": round(adjusted_rand_score(df["tabclustpfn"], restored), 3)}
+    print("Same k on", tcp_checks["subsamples_with_same_k"], "of 30 subsamples | ARI after shuffling rows:",
+          tcp_checks["ari_row_shuffle"])
+
+tcp_profile_rows = []
+for column, variant in [("tabclustpfn", "auto k = " + str(k_auto)), ("tabclustpfn_k4", "k = " + str(K_FINAL))]:
+    for lab, group in df.groupby(column):
+        tcp_profile_rows.append({
+            "variant": variant, "cluster": lab, "listings": len(group),
+            "median_price": round(group["price"].median(), 2),
+            "median_units_sold": group["sold"].median(),
+            "share_of_units_sold_pct": round(group["sold"].sum() / df["sold"].sum() * 100, 1),
+            "median_stock_level": group["stock_level"].median(),
+            "pct_at_stock_ceiling": round((group["stock_level"] == 11).mean() * 100, 1)})
+tcp_profile = pd.DataFrame(tcp_profile_rows).set_index(["variant", "cluster"])
+save_table(tcp_profile, "table17_tabclustpfn.csv")
+print("ARI with K-Means: auto", round(adjusted_rand_score(df["kmeans"], df["tabclustpfn"]), 3),
+      "| k = 4", round(adjusted_rand_score(df["kmeans"], df["tabclustpfn_k4"]), 3))
+tcp_profile
+""")
+
+code(r"""
+# Figure 19: TabClustPFN partitions on the PCA plane, and how the k = 4 version maps onto K-Means
+fig, axes = plt.subplots(1, 3, figsize=(TEXT_WIDTH, 2.6), gridspec_kw={"width_ratios": [1, 1, 0.9]})
+tcp_colours = [MIDNIGHT_SOFT, "#8FA3B1", TIFFANY, "#7D6B9E"]   # neutral: segment colours stay reserved for K-Means
+plot_clusters_pca(axes[0], df["tabclustpfn"].values, "(a)  Automatic k = " + str(k_auto), colours=tcp_colours)
+plot_clusters_pca(axes[1], df["tabclustpfn_k4"].values, "(b)  Fixed k = " + str(K_FINAL), colours=tcp_colours)
+cross = pd.crosstab(df["tabclustpfn_k4"], df["kmeans"])
+sns.heatmap(cross, annot=True, fmt="d", cmap=ARDEN_CMAP, cbar=False, linewidths=1, linecolor="white",
+            annot_kws={"fontsize": 7}, ax=axes[2])
+axes[2].set_xlabel("K-Means cluster")
+axes[2].set_ylabel("TabClustPFN (k = 4)")
+axes[2].grid(False)
+panel(axes[2], "c", "Overlap with K-Means")
+for ax in axes[:2]:
+    ax.legend(loc="lower left", markerscale=2, fontsize=6.5, handletextpad=0.2, borderaxespad=0.1)
+save_figure(fig, "fig19_tabclustpfn.png")
+plt.show()
+""")
+
+md(r"""
+**What TabClustPFN tells us.** Left to choose for itself, the foundation model predicts **two** clusters, and it does so consistently: the same k on every subsample, and identical labels when the rows are shuffled. Its split is the most basic one in the catalogue, listings with thin stock against everything else; almost all of the K-Means low-stock segment falls in its smaller cluster. This is an independent confirmation, from a model that never saw this data during training, that stock position is the strongest structure in the catalogue.
+
+Forced to four clusters it does noticeably worse than K-Means on every internal index, and one of its groups is almost entirely listings at the censored stock ceiling, the same artefact HDBSCAN found. The pre-trained model is therefore an excellent check on structure and on the choice of k, but on this small, low-dimensional table it does not beat a well-prepared K-Means for a business segmentation.
+""")
+
+# ---------------------------------------------------------------------------
+md(r"""
+## 11. Model comparison and validation
 
 Clustering has no "correct answer" to score against, so I combine four kinds of evidence:
 
@@ -1070,10 +1220,17 @@ for name, column, fit_function, ignore_noise in [
         ("K-Means", "kmeans", fit_kmeans, False),
         ("Hierarchical (Ward)", "ward", fit_ward, False),
         ("DBSCAN", "dbscan", fit_dbscan, True),
-        ("HDBSCAN", "hdbscan", fit_hdbscan, True)]:
+        ("HDBSCAN", "hdbscan", fit_hdbscan, True),
+        ("TabClustPFN (auto k)", "tabclustpfn", fit_tabclustpfn if tcp_model is not None else None, False),
+        ("TabClustPFN (k = 4)", "tabclustpfn_k4",
+         (lambda data: fit_tabclustpfn(data, K_FINAL)) if tcp_model is not None else None, False)]:
     labels = df[column].values
     scores = internal_scores(labels, ignore_noise=ignore_noise)
-    stab_mean, stab_std = bootstrap_stability(fit_function)
+    if fit_function is not None:
+        stab_mean, stab_std = bootstrap_stability(fit_function)
+    else:      # TabClustPFN unavailable in this environment: reuse the stability measured in the assessed run
+        previous = pd.read_csv(TABLE_DIR / "table11_model_comparison.csv", index_col=0)
+        stab_mean, stab_std = previous.loc[name, "stability_ARI_mean"], previous.loc[name, "stability_ARI_sd"]
     n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
     sizes = pd.Series(labels[labels != -1]).value_counts()
     row = {"model": name, "clusters": n_clusters, "noise_pct": round((labels == -1).mean() * 100, 1)}
@@ -1121,8 +1278,8 @@ code(r"""
 metrics_to_plot = [("silhouette", "Silhouette (higher is better)"),
                    ("davies_bouldin", "Davies-Bouldin (lower is better)"),
                    ("stability_ARI_mean", "Stability ARI (higher is better)")]
-short = {"Hierarchical (Ward)": "Ward"}
-fig, axes = plt.subplots(1, 3, figsize=(TEXT_WIDTH, 2.6))
+short = {"Hierarchical (Ward)": "Ward", "TabClustPFN (auto k)": "TCP auto", "TabClustPFN (k = 4)": "TCP k=4"}
+fig, axes = plt.subplots(1, 3, figsize=(TEXT_WIDTH, 2.9))
 for ax, letter, (metric, label) in zip(axes, "abc", metrics_to_plot):
     values = comparison[metric]
     names = [short.get(m, m) for m in comparison.index]
@@ -1137,7 +1294,7 @@ for ax, letter, (metric, label) in zip(axes, "abc", metrics_to_plot):
     panel(ax, letter, label)
     ax.set_ylim(min(0, values.min() * 1.3), max(values) * 1.22)
     ax.axhline(0, color="#9AAAB4", linewidth=0.6)
-    plt.setp(ax.get_xticklabels(), rotation=30, ha="right")
+    plt.setp(ax.get_xticklabels(), rotation=40, ha="right")
 fig.supxlabel("Hatched bars: DBSCAN and HDBSCAN are scored on clustered listings only ("
               + ", ".join(str(comparison.loc[m, "noise_pct"]) + "% noise for " + m
                           for m in comparison.index if comparison.loc[m, "noise_pct"] > 0) + ").",
@@ -1152,6 +1309,7 @@ md(r"""
 - **K-Means** has the best silhouette (0.307), the lowest Davies-Bouldin (1.015) and the highest Calinski-Harabasz of the three. More importantly, it is **stable**: the grouping barely changes when 20% of the listings are removed (mean ARI 0.93), when the random seed changes (0.98), or when the top 1% of sellers are dropped (0.94).
 - **Ward** produces similar-sized groups but scores lower on every index, and its grouping is **unstable** under resampling (ARI 0.48). Because every merge in a hierarchy is final, a few changed points early on can reshape the whole tree.
 - **DBSCAN** does not segment this data (see Section 8). Its silhouette on clustered points is about zero, and one cluster holds 91% of listings.
+- **TabClustPFN** with automatic k is the most stable model of all and confirms the basic low-stock split, but at k = 4 it trails K-Means on every index (Section 10).
 - **HDBSCAN** shows the highest silhouette (0.48) and lowest Davies-Bouldin (0.79), but these are computed on the 53% of listings it keeps: dropping the hardest 47% as noise makes any index look better. Its larger cluster is the stock-ceiling pile-up (Section 9), so it is a data-quality finding rather than a segmentation.
 - **Scaling matters.** Swapping z-scores for min-max scaling changes the K-Means grouping noticeably (ARI 0.49). Min-max gives `stock_level`, which only takes values 1 to 11, a different weight from the two log measures. I keep z-scores because they give each feature equal variance, but this is recorded as a limitation: the segment boundaries depend partly on how the features are weighted.
 
@@ -1160,7 +1318,7 @@ None of the silhouette values are high. A score around 0.3 means the clusters ar
 
 # ---------------------------------------------------------------------------
 md(r"""
-## 11. Final model and cluster profiles
+## 12. Final model and cluster profiles
 
 **Final model: K-Means with k = 4.** On technical grounds it has the best internal scores and by far the best stability. On business grounds it puts every listing into a segment (no "noise" bucket to explain), its centroids can be read directly as a typical price, sales level and stock position, and new listings can be assigned to the nearest centroid instantly, which suits a fast-growing catalogue. Ward is kept as a cross-check (ARI with K-Means is reported in the ledger), DBSCAN as an anomaly flag and HDBSCAN as a data-quality probe.
 
@@ -1266,7 +1424,7 @@ These names describe the data; the business reasons behind each pattern (for exa
 code(r"""
 # Save the frozen results ledger: cluster labels for every listing plus the headline numbers
 df[["Item_Name", "details", "product_type", "price", "sold", "stock_level", "stock_imputed",
-    "country", "kmeans", "ward", "dbscan", "hdbscan"]].to_csv(OUTPUT_DIR / "cluster_assignments.csv", index=False)
+    "country", "kmeans", "ward", "dbscan", "hdbscan", "tabclustpfn", "tabclustpfn_k4"]].to_csv(OUTPUT_DIR / "cluster_assignments.csv", index=False)
 
 ledger = {
     "rows_raw": int(len(raw)),
@@ -1277,6 +1435,7 @@ ledger = {
     "dbscan_min_samples": MIN_SAMPLES,
     "hdbscan_min_cluster_size": MIN_CLUSTER_SIZE,
     "hdbscan_min_samples": MIN_SAMPLES,
+    "tabclustpfn_checks": tcp_checks,
     "pca_explained_pc1_pc2": [round(float(v), 3) for v in explained[:2]],
     "comparison": comparison.reset_index().to_dict(orient="records"),
     "sensitivity": sensitivity.reset_index().to_dict(orient="records"),

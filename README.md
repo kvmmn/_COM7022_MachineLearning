@@ -7,7 +7,7 @@ Assignment: **Product Segmentation and Performance Clustering (Portfolio)**
 ---
 
 ### Final report and review page
-- **Final report (Word):** [`COM7022 - Assignment/COM7022_Portfolio_25199053_final.docx`](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.docx) and [PDF](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.pdf). Task 1 and Task 2 in one document, 2,926 words of body text, full code in Appendix A as screenshots.
+- **Final report (Word):** [`COM7022 - Assignment/COM7022_Portfolio_25199053_final.docx`](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.docx) and [PDF](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.pdf). Task 1 and Task 2 in one document, about 3,300 words of body text, full code in Appendix A as screenshots.
 - **Review page (GitHub Pages):** [https://kvmmn.github.io/_COM7022_MachineLearning/](https://kvmmn.github.io/_COM7022_MachineLearning/) shows the same report with an interactive segment explorer.
 - **Notebook (Colab-ready):** [`COM7022 - Assignment/COM7022_Clustering_25199053.ipynb`](COM7022%20-%20Assignment/COM7022_Clustering_25199053.ipynb)
 - **Dataset:** [`COM7022 - Assignment/Sales-[5444].csv`](COM7022%20-%20Assignment/Sales-%5B5444%5D.csv)
@@ -39,7 +39,7 @@ Assignment: **Product Segmentation and Performance Clustering (Portfolio)**
 - **Data Hygiene:** 1,000 raw listings processed to 997 verified records; deterministic recovery of prices and sales from text; resolution of marketplace inventory censoring (capping at 11); natural log transformation compressing sales skewness from +9.72 to +0.52.
 - **Feature Space:** Log-transformed price, log-transformed sales volume, and inventory availability scale; standardised via z-score scaling.
 - **PCA Dimensionality Analysis:** First two principal components capture 78.7% of total variance (PC1 = 48.6% commercial traction; PC2 = 30.1% price luxury tier).
-- **Evaluated Algorithms:** K-Means ($k=4$), Hierarchical Agglomerative Clustering (Ward Linkage), DBSCAN ($\epsilon=0.45, \text{MinPts}=6$) and HDBSCAN (min cluster size 30, min samples 6).
+- **Evaluated Algorithms:** K-Means ($k=4$), Hierarchical Agglomerative Clustering (Ward Linkage), DBSCAN ($\epsilon=0.45, \text{MinPts}=6$), HDBSCAN (min cluster size 30, min samples 6) and the TabClustPFN tabular foundation model (automatic k and k = 4).
 - **Primary Production Model:** K-Means ($k=4$), chosen for superior partition metrics (Silhouette = 0.307; Davies-Bouldin = 1.015; Calinski-Harabasz = 503.3), near-perfect resampling stability ($0.932 \pm 0.025$ ARI), and complete catalogue coverage.
 - **Discovered Segments:**
   1. *Cluster 2 (Best-Sellers):* 24.3% of listings driving **92.3% of platform sales volume** (median $29.94, median sales 952 units).

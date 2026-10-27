@@ -58,3 +58,8 @@
 
 ## D13: Print-first visual system (2026-10-27)
 - **Choice:** All figures, diagrams and code screenshots are drawn at final printed size (6.6 in text width, or 4.6 in narrow) at 300 dpi, in Carlito (metric-compatible with the report's Calibri), with fixed type sizes (8.5 pt labels, 7.5 pt ticks, 9 pt panel titles) and one colour per segment (0 steel blue, 1 ochre, 2 tiffany, 3 terracotta). The Word report inserts each image at native size, so type is identical across figures. The PDF is the primary deliverable; the HTML portal is secondary.
+
+## D14: TabClustPFN as a state-of-the-art benchmark (2026-10-27)
+- **Choice:** TabClustPFN (Zhao et al., 2026; arXiv:2601.21656), the authors' public code and checkpoint, run twice on the same standardised features: automatic k and k = 4. R's `rpy2` is only used to generate pre-training data, so an import-time placeholder (raises if called) replaces it; licence CC BY-NC 4.0 (non-commercial coursework).
+- **Evidence:** Automatic k = 2 (thin stock vs the rest), the same k on 30/30 subsamples, identical labels under row shuffling, stability ARI 0.966; 310 of 312 K-Means low-stock listings fall in its smaller cluster. At k = 4: silhouette 0.152, DBI 1.71 (K-Means 0.307, 1.015), stability 0.933, one group 97% at the stock ceiling.
+- **Reading:** An independent pre-trained check that confirms the dominant stock structure and supports a small k; it does not beat K-Means for a four-way business segmentation. Kept as a check on k.

@@ -21,7 +21,7 @@ Three obstacles prevent the company from managing this catalogue strategically. 
 ## 1.4 Project Objectives
 
 - **O1 — Data readiness:** audit, clean and transform the dataset with every intervention evidenced and reproducible.
-- **O2 — Segmentation:** apply K-Means, Hierarchical (agglomerative) clustering, DBSCAN and the more recent HDBSCAN to group listings by product characteristics and sales performance.
+- **O2 — Segmentation:** apply K-Means, Hierarchical (agglomerative) clustering, DBSCAN, the more recent HDBSCAN and the TabClustPFN foundation model to group listings by product characteristics and sales performance.
 - **O3 — Rigorous evaluation:** compare models with complementary internal, stability and sensitivity measures rather than a single score.
 - **O4 — Model justification:** select the model that is technically strongest *and* operationally suited to e-commerce.
 - **O5 — Business translation:** convert segments into evidence-based actions for non-technical decision-makers.
@@ -78,7 +78,7 @@ Preparation followed a single principle: **recover before you impute**. Where a 
 
 $$z = \frac{x - \mu}{\sigma}$$
 
-Min-max normalisation was evaluated as an alternative and rejected: it inflates the bounded 1–11 stock scale relative to the log-transformed measures and changed the partition substantially (ARI 0.49; Section 4.6).
+Min-max normalisation was evaluated as an alternative and rejected: it inflates the bounded 1–11 stock scale relative to the log-transformed measures and changed the partition substantially (ARI 0.49; Section 4.7).
 
 **Categorical variables.** Brand (246 values), product type and country were deliberately excluded from the distance computation. One-hot encoding would add hundreds of sparse dimensions and allow single brands to dominate the geometry; these attributes were instead reserved for post-hoc cluster profiling.
 
@@ -104,7 +104,7 @@ Clustering is an **unsupervised learning** task: it partitions observations so t
 
 ## 3.2 Candidate Techniques
 
-Four techniques were selected because they embody different definitions of a "cluster" ([[table_techniques]]):
+Five techniques were selected because they embody different definitions of a "cluster", from classical to state-of-the-art ([[table_techniques]]):
 
 - **K-Means** (MacQueen, 1967) is centroid-based. It minimises within-cluster variance by alternately assigning points to the nearest centroid and updating the centroids:
 
@@ -113,6 +113,7 @@ $$J = \sum_{j=1}^{k} \sum_{x_i \in C_j} \lVert x_i - \mu_j \rVert^2$$
 - **Agglomerative hierarchical clustering** builds a nested tree by repeatedly merging the closest clusters. Ward linkage (Ward, 1963) merges the pair that least increases total within-cluster variance.
 - **DBSCAN** (Ester et al., 1996) is density-based. It grows clusters from dense neighbourhoods defined by a radius ε and a minimum point count, and labels isolated points as noise.
 - **HDBSCAN** (Campello, Moulavi and Sander, 2013; McInnes, Healy and Astels, 2017), in scikit-learn since 2023, removes ε: it builds a hierarchy over all density levels and keeps the most persistent clusters, so it can detect groups of differing density.
+- **TabClustPFN** (Zhao et al., 2026) is a tabular foundation model in the TabPFN family (Hollmann et al., 2025): a transformer pre-trained on synthetic clustering problems that assigns clusters, and can predict their number, in a single pass without being fitted to the data.
 
 ::: table table_techniques
 
@@ -158,7 +159,16 @@ HDBSCAN directly tests whether DBSCAN failed merely because no single ε suits e
 ::: table table_hdbscan
 ::: figure fig18_hdbscan | HDBSCAN on the PCA plane (a) and its alignment with the censored stock ceiling (b).
 
-## 4.5 Evaluation Framework
+## 4.5 TabClustPFN
+
+TabClustPFN was run with the authors' pretrained checkpoint on the same standardised features, once choosing k itself and once with k fixed at 4 ([[table_tabclustpfn]], [[fig19_tabclustpfn]]). Inference took about three seconds on a CPU. Left to decide, it predicts **two clusters**, consistently: the same k on all 30 subsamples, identical labels when the rows are shuffled, and the highest stability of any model (ARI 0.966). Its split is thin-stock listings against the rest, and 310 of the 312 listings in the K-Means low-stock segment fall in its smaller cluster. A model that never saw this data therefore confirms independently that stock position is the strongest structure in the catalogue.
+
+Forced to four clusters it trails K-Means on every index (silhouette 0.152 against 0.307; Davies-Bouldin 1.71 against 1.02), and one group is 97% listings at the censored stock ceiling, the artefact HDBSCAN also found. The foundation model is valuable as an unbiased check on structure and on k, but it does not replace a well-prepared K-Means for a four-way business segmentation.
+
+::: table table_tabclustpfn
+::: figure fig19_tabclustpfn | TabClustPFN with automatic k (a) and k = 4 (b), and the overlap of the k = 4 solution with K-Means (c).
+
+## 4.6 Evaluation Framework
 
 Accuracy-type metrics require ground-truth labels and are therefore inapplicable to clustering. Model quality was instead triangulated across complementary measures, each answering a different question ([[table_metrics]]). The silhouette coefficient (Rousseeuw, 1987) is defined for each listing as:
 
@@ -168,18 +178,18 @@ where a(i) is the mean distance to the listing's own cluster and b(i) to the nea
 
 ::: table table_metrics
 
-## 4.6 Comparative Results
+## 4.7 Comparative Results
 
 ::: table table_comparison
 ::: figure fig12_model_comparison | Internal validity and stability by model; hatched bars are scored on clustered listings only.
 
-Among models that assign every listing, K-Means leads on **every internal index**: silhouette 0.307 versus 0.253 for Ward, Davies-Bouldin 1.015 versus 1.257, Calinski-Harabasz 503.3 versus 402.9. HDBSCAN's higher silhouette (0.480) is not comparable, because it is computed on the 53% of listings it retains; scoring only the easiest points inflates every index. Stability is decisive: across 30 resamples of 80% of the data, K-Means reproduces its partition almost exactly (**ARI 0.932 ± 0.025**), whereas Ward does not (0.481 ± 0.084) because early merges in a hierarchy are irreversible and small sample changes propagate up the tree.
+Among models that assign every listing, K-Means leads on **every internal index**: silhouette 0.307 versus 0.253 for Ward, Davies-Bouldin 1.015 versus 1.257, Calinski-Harabasz 503.3 versus 402.9. TabClustPFN's automatic two-cluster solution scores a similar silhouette (0.326) to K-Means at the same k (0.337), but at k = 4 it is clearly weaker. HDBSCAN's higher silhouette (0.480) is not comparable, because it is computed on the 53% of listings it retains; scoring only the easiest points inflates every index. Stability is decisive: across 30 resamples of 80% of the data, K-Means reproduces its partition almost exactly (**ARI 0.932 ± 0.025**), whereas Ward does not (0.481 ± 0.084) because early merges in a hierarchy are irreversible and small sample changes propagate up the tree. TabClustPFN is equally stable (0.966 automatic, 0.933 at k = 4), so stability alone does not separate the two; segment quality at k = 4 does.
 
 Sensitivity tests confirm robustness ([[table_sensitivity]]): changing the seed (mean ARI 0.984) or removing the top 1% of sellers (0.937) barely alters the solution, so the log transform neutralised outlier leverage. Only min-max scaling (0.492) materially changes it, justifying standardisation.
 
 ::: table table_sensitivity
 ::: callout Model Selection Decision
-**K-Means (k = 4)** is selected as the production segmentation engine: best internal validity among full-coverage models, near-perfect stability and full catalogue coverage. Ward is retained as a structural cross-check, DBSCAN as an anomaly flag and HDBSCAN as a data-quality probe.
+**K-Means (k = 4)** is selected as the production segmentation engine: best internal validity among full-coverage models, near-perfect stability and full catalogue coverage. Ward is retained as a structural cross-check, DBSCAN as an anomaly flag, HDBSCAN as a data-quality probe and TabClustPFN as an independent check on the number of segments.
 :::
 
 # 5. Cluster Characteristics {#clusters}
@@ -201,7 +211,7 @@ Mapping centroids back to business units reveals four distinct commercial segmen
 
 # 6. Executive Summary {#executive-summary}
 
-Machine learning reveals that our 997 fragrance listings fall into **four natural commercial segments**. One quarter of listings — the best-sellers — generate **92% of all units sold**, while almost a third of the catalogue is close to running out of stock. The recommended model, **K-Means with four segments**, is the most accurate and stable of the four techniques tested and is simple enough to run automatically on new listings. Each segment calls for a distinct action: protect, grow, reposition or audit.
+Machine learning reveals that our 997 fragrance listings fall into **four natural commercial segments**. One quarter of listings — the best-sellers — generate **92% of all units sold**, while almost a third of the catalogue is close to running out of stock. The recommended model, **K-Means with four segments**, produced better segments than four alternatives, including a 2026 AI foundation model, is among the most stable, and is simple enough to run automatically on new listings. Each segment calls for a distinct action: protect, grow, reposition or audit.
 
 ::: kpis
 
@@ -213,7 +223,7 @@ Unsupervised clustering is the right tool because the company holds no labelled 
 
 ## 7.2 Comparative Performance: Strengths and Limitations
 
-**K-Means** was the strongest model on every measure. Its limitation is that it assumes compact, similarly sized groups and requires the number of segments to be chosen; on a continuous catalogue its boundaries are therefore soft, as the moderate silhouette (0.31) honestly reflects. **Ward hierarchical clustering** offers an intuitive tree of nested groups but proved unstable: its segments changed substantially whenever the sample changed, and it cannot assign new listings without rebuilding the tree. **DBSCAN** excels at irregular shapes and outlier detection, but placed 91% of listings in one group. **HDBSCAN**, the newest technique tested, removes DBSCAN's fragile radius setting, yet still left almost half the catalogue unassigned, and its densest cluster reflected how the platform records stock rather than how listings sell. These weaknesses are properties of the data as much as of the algorithms, which is itself a valuable insight into how the marketplace is structured.
+**K-Means** was the strongest model on every measure. Its limitation is that it assumes compact, similarly sized groups and requires the number of segments to be chosen; on a continuous catalogue its boundaries are therefore soft, as the moderate silhouette (0.31) honestly reflects. **Ward hierarchical clustering** offers an intuitive tree of nested groups but proved unstable: its segments changed substantially whenever the sample changed, and it cannot assign new listings without rebuilding the tree. **DBSCAN** excels at irregular shapes and outlier detection, but placed 91% of listings in one group. **HDBSCAN**, the newest technique tested, removes DBSCAN's fragile radius setting, yet still left almost half the catalogue unassigned, and its densest cluster reflected how the platform records stock rather than how listings sell. **TabClustPFN**, a pre-trained foundation model, needs no tuning and is very stable, and its automatic choice of two clusters is a useful sanity check; but it is a black box that depends on externally hosted weights, and when asked for four segments it produced weaker, less commercially meaningful groups than K-Means. Newer is therefore not automatically better: on a small, well-understood table, careful preparation and a transparent model win. These weaknesses are properties of the data as much as of the algorithms, which is itself a valuable insight into how the marketplace is structured.
 
 ## 7.3 Why K-Means Is the Right Choice for E-Commerce
 
@@ -236,9 +246,9 @@ The platform caps visible stock at ten units, so genuine depth above that level 
 
 # 10. Conclusion and Future Work {#conclusion}
 
-This project demonstrates that a carefully prepared, well-validated K-Means model can turn an unlabelled and messy catalogue into four clear, actionable segments, and that the commercial value of the catalogue is extraordinarily concentrated. The most important lesson is that **data preparation mattered more than algorithm choice**: recovering values from listing text and correcting the hidden stock ceiling changed the outcome more than any hyperparameter. Equally, the density methods were not wasted effort: DBSCAN and HDBSCAN together provided the clearest evidence that the marketplace is a continuum, and HDBSCAN exposed how stock censoring distorts the data.
+This project demonstrates that a carefully prepared, well-validated K-Means model can turn an unlabelled and messy catalogue into four clear, actionable segments, and that the commercial value of the catalogue is extraordinarily concentrated. The most important lesson is that **data preparation mattered more than algorithm choice**, even against a state-of-the-art foundation model: recovering values from listing text and correcting the hidden stock ceiling changed the outcome more than any hyperparameter. Equally, the density methods were not wasted effort: DBSCAN and HDBSCAN together provided the clearest evidence that the marketplace is a continuum, and HDBSCAN exposed how stock censoring distorts the data. TabClustPFN added an independent, pre-trained view that agreed on the dominant stock split.
 
-Future work would enrich the feature space with revenue, margin and true stock counts, incorporate text embeddings of product descriptions, and track segment migration over time to detect listings that are rising or declining. Validating whether segment membership predicts next-quarter sales would convert the descriptive model into a forward-looking decision tool, and a lightweight dashboard would place each listing's segment directly in the hands of category managers.
+Future work would enrich the feature space with revenue, margin and true stock counts (removing the censoring that misled two of the models), incorporate text embeddings of product descriptions, and track segment migration over time to detect listings that are rising or declining. Validating whether segment membership predicts next-quarter sales would convert the descriptive model into a forward-looking decision tool, and a lightweight dashboard would place each listing's segment directly in the hands of category managers.
 
 <!-- count:none -->
 # References {#references}
@@ -247,6 +257,7 @@ Future work would enrich the feature space with revenue, margin and true stock c
 - Caliński, T. and Harabasz, J. (1974) 'A dendrite method for cluster analysis', *Communications in Statistics*, 3(1), pp. 1–27.
 - Davies, D.L. and Bouldin, D.W. (1979) 'A cluster separation measure', *IEEE Transactions on Pattern Analysis and Machine Intelligence*, PAMI-1(2), pp. 224–227.
 - Ester, M., Kriegel, H.-P., Sander, J. and Xu, X. (1996) 'A density-based algorithm for discovering clusters in large spatial databases with noise', in *Proceedings of the Second International Conference on Knowledge Discovery and Data Mining*. Portland: AAAI Press, pp. 226–231.
+- Hollmann, N., Müller, S., Purucker, L., Krishnakumar, A., Körfer, M., Hoo, S.B., Schirrmeister, R.T. and Hutter, F. (2025) 'Accurate predictions on small data with a tabular foundation model', *Nature*, 637, pp. 319–326.
 - Hubert, L. and Arabie, P. (1985) 'Comparing partitions', *Journal of Classification*, 2(1), pp. 193–218.
 - MacQueen, J. (1967) 'Some methods for classification and analysis of multivariate observations', in *Proceedings of the Fifth Berkeley Symposium on Mathematical Statistics and Probability*. Berkeley: University of California Press, pp. 281–297.
 - McInnes, L., Healy, J. and Astels, S. (2017) 'hdbscan: Hierarchical density based clustering', *Journal of Open Source Software*, 2(11), p. 205.
@@ -256,10 +267,11 @@ Future work would enrich the feature space with revenue, margin and true stock c
 - Pedregosa, F. et al. (2011) 'Scikit-learn: machine learning in Python', *Journal of Machine Learning Research*, 12, pp. 2825–2830.
 - Rousseeuw, P.J. (1987) 'Silhouettes: a graphical aid to the interpretation and validation of cluster analysis', *Journal of Computational and Applied Mathematics*, 20, pp. 53–65.
 - Ward, J.H. (1963) 'Hierarchical grouping to optimize an objective function', *Journal of the American Statistical Association*, 58(301), pp. 236–244.
+- Zhao, T., Wang, G., Tan, Y.S. and Zhang, Q. (2026) 'TabClustPFN: a prior-fitted network for tabular data clustering', *arXiv preprint* arXiv:2601.21656.
 
 # Appendix A: Reproducible Code {#appendix}
 
-The complete Task 1 implementation is a single Jupyter notebook that executes end to end in about 30 seconds on Google Colab or locally, with fixed random seeds (42). All materials — notebook, dataset, figures, tables and code screenshots — are hosted in the project repository: https://github.com/kvmmn/_COM7022_MachineLearning. The full notebook code follows, one screenshot per cell in execution order.
+The complete Task 1 implementation is a single Jupyter notebook that executes end to end in about 30 seconds on Google Colab or locally, with fixed random seeds (42). All materials — notebook, dataset, figures, tables and code screenshots — are hosted in the project repository: https://github.com/kvmmn/_COM7022_MachineLearning. TabClustPFN is run from the authors' public code and checkpoint (CC BY-NC 4.0 licence, used for non-commercial coursework); the notebook downloads both and, because R's `rpy2` is only needed to generate the model's pre-training data, supplies a placeholder module that raises an error if ever called. The full notebook code follows, one screenshot per cell in execution order.
 
 ::: appendix
 
