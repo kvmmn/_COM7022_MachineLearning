@@ -8,7 +8,7 @@
 - Tutor: not named; in-class feedback recorded in `_brain/TUTOR_FEEDBACK.md` (2026-10-27). ROC: tutor confirmed (2026-10-27) it is not required for this clustering project.
 - Deadline: ~2026-11-17 (student, 2026-10-24: "24 days from now"); confirm exact time on iLearn
 - GitHub: https://github.com/kvmmn/_COM7022_MachineLearning (module folder = repo root, as COM7021); GitHub Pages `index.html` = visual draft review
-- Assessed run: Google Colab (local `.venv` mirrors it for verification only)
+- Assessed run: Google Colab, executed and saved to GitHub 2026-10-27 (commit 8acdcc8); all numbers reproduce the local run (see decision log D15)
 - Palette: Arden Midnight/Tiffany (`COM7021 - Assignment/VISUAL_DESIGN_GUIDE.md`)
 - Final filename (proposed): `COM7022_Portfolio_25199053_final.docx` (+ `.pdf`)
 
