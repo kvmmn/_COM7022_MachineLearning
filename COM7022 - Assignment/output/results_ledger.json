@@ -9,6 +9,13 @@
   "k_final": 4,
   "dbscan_eps": 0.45,
   "dbscan_min_samples": 6,
+  "hdbscan_min_cluster_size": 30,
+  "hdbscan_min_samples": 6,
+  "tabclustpfn_checks": {
+    "predicted_k": 2,
+    "subsamples_with_same_k": 30,
+    "ari_row_shuffle": 1.0
+  },
   "pca_explained_pc1_pc2": [
     0.486,
     0.301
@@ -49,6 +56,42 @@
       "stability_ARI_sd": 0.063,
       "smallest_cluster_pct": 0.4,
       "largest_cluster_pct": 90.7
+    },
+    {
+      "model": "HDBSCAN",
+      "clusters": 2,
+      "noise_pct": 47.0,
+      "silhouette": 0.48,
+      "davies_bouldin": 0.785,
+      "calinski_harabasz": 476.0,
+      "stability_ARI_mean": 0.705,
+      "stability_ARI_sd": 0.147,
+      "smallest_cluster_pct": 13.5,
+      "largest_cluster_pct": 39.4
+    },
+    {
+      "model": "TabClustPFN (auto k)",
+      "clusters": 2,
+      "noise_pct": 0.0,
+      "silhouette": 0.326,
+      "davies_bouldin": 1.261,
+      "calinski_harabasz": 497.6,
+      "stability_ARI_mean": 0.966,
+      "stability_ARI_sd": 0.024,
+      "smallest_cluster_pct": 41.1,
+      "largest_cluster_pct": 58.9
+    },
+    {
+      "model": "TabClustPFN (k = 4)",
+      "clusters": 4,
+      "noise_pct": 0.0,
+      "silhouette": 0.152,
+      "davies_bouldin": 1.71,
+      "calinski_harabasz": 278.7,
+      "stability_ARI_mean": 0.933,
+      "stability_ARI_sd": 0.036,
+      "smallest_cluster_pct": 14.1,
+      "largest_cluster_pct": 40.8
     }
   ],
   "sensitivity": [

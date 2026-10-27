@@ -236,11 +236,11 @@ def caption(doc, label, text, rel=None):
         source_line(p, rel)
 
 
-def figure(doc, path, label, text, rel, width=15.6, max_height=21.5, code=False):
+def figure(doc, path, label, text, rel, max_height=22.0):
+    """Insert at the image's native print size (all visuals are drawn at 300 dpi for a 16.8 cm text width),
+    so type in every figure and screenshot appears at the size it was designed for."""
     w, h = Image.open(path).size
-    if code:                                   # same type size for every code screenshot
-        width = min(width, w / 78)
-    width = min(width, max_height * w / h)
+    width = min(16.8, w / 300 * 2.54, max_height * w / h)
     p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_before, p.paragraph_format.space_after = Pt(6), Pt(0)
     p.paragraph_format.keep_with_next = True
@@ -311,7 +311,7 @@ def equation(doc, latex, n):
     tex = latex.replace(r"\lVert", r"\Vert").replace(r"\rVert", r"\Vert")
     path = EQ_DIR / f"eq{n}.png"
     fig = plt.figure(figsize=(0.01, 0.01))
-    fig.text(0, 0, f"${tex}$", fontsize=16, color="#002B49")
+    fig.text(0, 0, f"${tex}$", fontsize=12, color="#002B49", math_fontfamily="dejavusans")
     fig.savefig(path, dpi=300, bbox_inches="tight", pad_inches=0.05)
     plt.close(fig)
     w, h = Image.open(path).size
@@ -319,7 +319,7 @@ def equation(doc, latex, n):
     c = t.cell(0, 0); shade(c, HEX["paper"]); cell_margins(c, 140, 140, 200, 200)
     cell_borders(c, top=(4, HEX["grid"]), bottom=(4, HEX["grid"]), left=(4, HEX["grid"]), right=(4, HEX["grid"]))
     p = c.paragraphs[0]; p.alignment = WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_after = Pt(0)
-    p.add_run().add_picture(str(path), height=Cm(h / 300 * 2.54 * 0.8))   # rendered at 300 dpi, shown at 80%
+    p.add_run().add_picture(str(path), height=Cm(h / 300 * 2.54))   # native size: 12 pt maths at 300 dpi
     spacer(doc, 4)
 
 
@@ -342,9 +342,7 @@ def cover(doc, wc):
     band(doc, HEX["midnight"], [
         ("MACHINE LEARNING PORTFOLIO  ·  MSC DATA SCIENCE  ·  ARDEN UNIVERSITY BERLIN", 8.5, True, TIFFANY, 12),
         (rs.TITLE, 25, True, WHITE, 12),
-        ("An end-to-end unsupervised machine learning investigation comparing K-Means, Ward hierarchical clustering and "
-         "DBSCAN across 1,000 marketplace listings, translated into evidence-based actions for catalogue strategy.",
-         10.5, False, RGBColor(0xD5, 0xDE, 0xE3), 0)], pad=(620, 620, 480, 440), left_bar=HEX["tiffany"])
+        (rs.SUBTITLE, 10.5, False, RGBColor(0xD5, 0xDE, 0xE3), 0)], pad=(620, 620, 480, 440), left_bar=HEX["tiffany"])
     spacer(doc, 10)
     meta = [("Student ID", rs.STUDENT_ID), ("Module", "COM7022 Machine Learning · Assignment [5444]"),
             ("Assessment", "Portfolio · Task 1 Practical Project · Task 2 Critical Report"),
@@ -437,7 +435,7 @@ def build(pages):
         elif t in ("figure", "shot"):
             path, rel = rs.figure_path(b)
             text = ("Code screenshot: " + b["caption"]) if t == "shot" else b["caption"]
-            figure(doc, path, b["label"], text, rel, 15.6, code=(t == "shot"))
+            figure(doc, path, b["label"], text, rel)
         elif t == "table":
             df, cap, rel = tables[b["key"]]
             data_table(doc, df, b["label"], cap, rel, rs.HIGHLIGHT.get(b["key"]))
@@ -456,7 +454,7 @@ def build(pages):
                 if head != current:
                     current = head
                     doc.add_heading(f"A · {head}", level=3)
-                figure(doc, path, f"Code A{n}", f"Notebook code cell {n}", rel, 15.6, code=True)
+                figure(doc, path, f"Code A{n}", f"Notebook code cell {n}", rel)
         # 'explorer' is interactive and portal-only; the same numbers are in the cluster profile table
     doc.save(DOCX)
     return blocks, wc

@@ -50,3 +50,16 @@
 - **Choice:** K-Means selected as primary model.
 - **Evidence:** Superior internal validation (silhouette 0.307 vs Ward 0.253; DBI 1.015 vs 1.257); exceptional resampling stability (ARI 0.932 vs Ward 0.481); full partition with 0% noise (unlike DBSCAN's 8.9% noise and 91% single cluster); linear inference for scoring incoming listings.
 - **Role for other models:** Ward used as a hierarchical cross-check (ARI = 0.411); DBSCAN used as an operational outlier detector.
+
+## D12: HDBSCAN as a fourth technique (2026-10-27)
+- **Choice:** HDBSCAN (scikit-learn 1.3+) with min_samples = 6 (same as DBSCAN) and min_cluster_size = 30 (about 3% of listings, the smallest group worth its own action).
+- **Evidence:** With min_samples = 6, every min_cluster_size from 20 to 100 gives the same result: 2 clusters, 47.0% noise. The larger cluster is 89.1% listings at the censored stock ceiling (41.5% of all listings sit at 11); the smaller is a low-stock group (median 3). Jittering stock by ±0.5 or dropping stock still leaves about 40-50% noise.
+- **Reading:** Silhouette 0.480 and DBI 0.785 are computed on the 53% of listings kept, so they are not comparable with full-coverage models (hatched in Figure 12). HDBSCAN confirms the continuum and exposes a data-quality effect; it is kept as a data-quality probe, not a segmentation.
+
+## D13: Print-first visual system (2026-10-27)
+- **Choice:** All figures, diagrams and code screenshots are drawn at final printed size (6.6 in text width, or 4.6 in narrow) at 300 dpi, in Carlito (metric-compatible with the report's Calibri), with fixed type sizes (8.5 pt labels, 7.5 pt ticks, 9 pt panel titles) and one colour per segment (0 steel blue, 1 ochre, 2 tiffany, 3 terracotta). The Word report inserts each image at native size, so type is identical across figures. The PDF is the primary deliverable; the HTML portal is secondary.
+
+## D14: TabClustPFN as a state-of-the-art benchmark (2026-10-27)
+- **Choice:** TabClustPFN (Zhao et al., 2026; arXiv:2601.21656), the authors' public code and checkpoint, run twice on the same standardised features: automatic k and k = 4. R's `rpy2` is only used to generate pre-training data, so an import-time placeholder (raises if called) replaces it; licence CC BY-NC 4.0 (non-commercial coursework).
+- **Evidence:** Automatic k = 2 (thin stock vs the rest), the same k on 30/30 subsamples, identical labels under row shuffling, stability ARI 0.966; 310 of 312 K-Means low-stock listings fall in its smaller cluster. At k = 4: silhouette 0.152, DBI 1.71 (K-Means 0.307, 1.015), stability 0.933, one group 97% at the stock ceiling.
+- **Reading:** An independent pre-trained check that confirms the dominant stock structure and supports a small k; it does not beat K-Means for a four-way business segmentation. Kept as a check on k.

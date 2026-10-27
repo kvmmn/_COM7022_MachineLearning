@@ -1,0 +1,4 @@
+,listings,median_price,median_units_sold,median_stock_level,pct_at_stock_ceiling
+Noise,469,38.95,51.0,7.0,13.6
+Cluster 0,393,29.99,116.0,11.0,89.1
+Cluster 1,135,39.99,18.0,3.0,0.0

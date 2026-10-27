@@ -39,8 +39,10 @@ This notebook groups the product listings in `Sales-[5444].csv` by their charact
 6. K-Means
 7. Hierarchical clustering
 8. DBSCAN
-9. Model comparison and validation
-10. Final model and cluster profiles
+9. HDBSCAN
+10. TabClustPFN (tabular foundation model)
+11. Model comparison and validation
+12. Final model and cluster profiles
 
 **How to run on Google Colab:** upload `Sales-[5444].csv` into the Colab file panel (or let the upload cell below ask for it), then choose *Runtime > Run all*. All figures and tables are saved into an `output/` folder next to the notebook. Random seeds are fixed so the results repeat.
 """)
@@ -67,11 +69,11 @@ import sklearn
 # Machine learning tools
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans, AgglomerativeClustering, DBSCAN
+from sklearn.cluster import KMeans, AgglomerativeClustering, DBSCAN, HDBSCAN
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import (silhouette_score, silhouette_samples, davies_bouldin_score,
                              calinski_harabasz_score, adjusted_rand_score)
-from scipy.cluster.hierarchy import linkage, dendrogram, fcluster, cophenet
+from scipy.cluster.hierarchy import linkage, dendrogram, fcluster, cophenet, set_link_color_palette
 from scipy.spatial.distance import pdist
 from scipy.stats import skew
 
@@ -99,36 +101,70 @@ MUTE = "#5A6B75"
 GRID = "#D5DEE3"
 NOISE_GREY = "#A7B4BC"
 
-# Cluster colours in a fixed order (five at most, then the chart should be split)
-CLUSTER_COLOURS = [MIDNIGHT, TIFFANY_DEEP, TEAL, MIDNIGHT_SOFT, TIFFANY]
+# One fixed colour per K-Means segment, used in every chart and in the report (index = cluster label):
+# 0 Premium = steel blue, 1 Budget = ochre, 2 Best-sellers = tiffany, 3 Low-stock = terracotta.
+CLUSTER_COLOURS = ["#2F6690", "#C99A2E", TIFFANY_DEEP, "#C8553D", MIDNIGHT]
+MODEL_COLOURS = {"K-Means": MIDNIGHT, "Hierarchical (Ward)": "#2F6690", "DBSCAN": "#8FA3B1",
+                 "HDBSCAN": TIFFANY_DEEP, "TabClustPFN (auto k)": "#C99A2E", "TabClustPFN (k = 4)": "#E2C37E"}
 ARDEN_CMAP = matplotlib.colors.LinearSegmentedColormap.from_list(
     "arden", [MIST, TIFFANY, TIFFANY_DEEP, MIDNIGHT_SOFT, MIDNIGHT])
 ARDEN_DIVERGING = matplotlib.colors.LinearSegmentedColormap.from_list(
-    "arden_div", [TIFFANY_DEEP, MIST, "#FFFFFF", "#D9E3EA", MIDNIGHT])
+    "arden_div", ["#C8553D", "#F3D9D2", "#FFFFFF", "#CFE3EE", MIDNIGHT_SOFT])
 
+# Print-ready figure system. Every chart is drawn at its final printed size (the report's text width is
+# 6.6 in = 16.8 cm), so labels are the same 8.5 pt in every figure and nothing is rescaled in the report.
+TEXT_WIDTH = 6.6
+NARROW = 4.6
 plt.rcParams.update({
     "font.family": "sans-serif",
-    "font.sans-serif": ["Aptos", "Helvetica Neue", "Arial", "DejaVu Sans"],
+    "font.sans-serif": ["Carlito", "Calibri", "Arial", "DejaVu Sans"],
+    "font.size": 8.5,
+    "axes.titlesize": 9,
+    "axes.titleweight": "bold",
+    "axes.titlelocation": "left",
+    "axes.titlepad": 6,
+    "axes.labelsize": 8.5,
+    "xtick.labelsize": 7.5,
+    "ytick.labelsize": 7.5,
+    "legend.fontsize": 7.5,
     "figure.facecolor": "white",
-    "axes.facecolor": PAPER,
-    "axes.edgecolor": GRID,
+    "axes.facecolor": "white",
+    "axes.edgecolor": "#9AAAB4",
+    "axes.linewidth": 0.6,
     "axes.labelcolor": MIDNIGHT,
     "axes.titlecolor": MIDNIGHT,
-    "axes.titleweight": "bold",
-    "axes.titlesize": 13,
-    "axes.titlepad": 15,
-    "axes.labelsize": 11,
     "axes.spines.top": False,
     "axes.spines.right": False,
     "axes.grid": True,
+    "axes.grid.axis": "y",
+    "axes.axisbelow": True,
     "grid.color": GRID,
+    "grid.linewidth": 0.5,
     "xtick.color": MUTE,
     "ytick.color": MUTE,
+    "xtick.major.size": 2.5,
+    "ytick.major.size": 2.5,
+    "xtick.major.width": 0.6,
+    "ytick.major.width": 0.6,
+    "lines.linewidth": 1.4,
+    "lines.markersize": 4,
+    "patch.linewidth": 0.4,
     "legend.frameon": False,
-    "figure.dpi": 110,
-    "savefig.dpi": 220,
-    "savefig.bbox": "tight",
+    "legend.handlelength": 1.4,
+    "figure.dpi": 100,
+    "savefig.dpi": 300,
+    "savefig.bbox": "standard",
+    "savefig.facecolor": "white",
+    "figure.constrained_layout.use": True,
+    "figure.constrained_layout.h_pad": 0.04,
+    "figure.constrained_layout.w_pad": 0.04,
 })
+
+
+def panel(ax, letter, title):
+    # Panel titles are lettered so the report caption can refer to (a), (b), (c)
+    ax.set_title("(" + letter + ")  " + title)
+
 
 # Output folders for the figures and tables used in the report
 OUTPUT_DIR = Path("output")
@@ -208,16 +244,18 @@ missing
 
 code(r"""
 # Figure 1: where the gaps are
-fig, ax = plt.subplots(figsize=(8, 4))
-bars = ax.barh(missing.index[::-1], missing["missing_count"][::-1], color=MIDNIGHT_SOFT)
-# Highlight the biggest gap, since it drives a pre-processing decision
-bars[-1].set_color(TIFFANY_DEEP)
-for bar, value in zip(bars, missing["missing_count"][::-1]):
-    ax.text(bar.get_width() + 1.5, bar.get_y() + bar.get_height() / 2, str(value),
-            va="center", color=MIDNIGHT, fontsize=9)
-ax.set_title("Missing values per column (n = 1,000 listings)")
-ax.set_xlabel("Number of missing values")
+data = missing["missing_count"][::-1]
+colours = [GRID if v == 0 else MIDNIGHT_SOFT for v in data.values]
+colours[-1] = TIFFANY_DEEP          # the biggest gap drives a pre-processing decision
+fig, ax = plt.subplots(figsize=(NARROW, 2.4))
+bars = ax.barh(data.index, data.values, color=colours, height=0.62)
+for bar, value in zip(bars, data.values):
+    ax.text(bar.get_width() + 1.5, bar.get_y() + bar.get_height() / 2, str(value), va="center",
+            color=MIDNIGHT, fontsize=7.5)
+ax.set_xlim(0, data.max() * 1.12)
+ax.set_xlabel("Missing values (n = 1,000 listings)")
 ax.grid(axis="y", visible=False)
+ax.grid(axis="x", visible=True)
 save_figure(fig, "fig01_missing_values.png")
 plt.show()
 """)
@@ -265,17 +303,18 @@ md(r"""
 
 code(r"""
 # Figure 2: raw distributions of price and units sold
-fig, axes = plt.subplots(1, 2, figsize=(11, 4))
-axes[0].hist(raw["price"].dropna(), bins=40, color=MIDNIGHT_SOFT, edgecolor="white")
-axes[0].set_title("Price (raw)")
-axes[0].set_xlabel("Price (USD)")
-axes[0].set_ylabel("Number of listings")
-axes[1].hist(raw["sold"].dropna(), bins=40, color=TIFFANY_DEEP, edgecolor="white")
-axes[1].set_title("Units sold (raw)")
-axes[1].set_xlabel("Units sold")
-axes[1].set_ylabel("Number of listings")
-fig.suptitle("Both measures are right-skewed; units sold is extreme", color=MIDNIGHT, fontweight="bold", y=1.03)
-fig.tight_layout()
+fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH, 2.4))
+for ax, col, colour, letter, title, xlabel in [
+        (axes[0], "price", MIDNIGHT_SOFT, "a", "Price (raw)", "Price (US$)"),
+        (axes[1], "sold", TIFFANY_DEEP, "b", "Units sold (raw)", "Units sold")]:
+    values = raw[col].dropna()
+    ax.hist(values, bins=40, color=colour, edgecolor="white", linewidth=0.3)
+    ax.axvline(values.median(), color=MIDNIGHT, linestyle="--", linewidth=0.9)
+    ax.text(0.97, 0.92, "median " + format(values.median(), ",.1f") + "\nskewness " + format(skew(values), ".2f"),
+            transform=ax.transAxes, ha="right", va="top", fontsize=7.5, color=MIDNIGHT)
+    panel(ax, letter, title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("Listings")
 save_figure(fig, "fig02_raw_distributions.png")
 plt.show()
 """)
@@ -437,17 +476,21 @@ cleaning_table
 
 code(r"""
 # Figure 3: distributions after the log transform
-fig, axes = plt.subplots(1, 3, figsize=(13, 3.8))
-axes[0].hist(df["log_price"], bins=35, color=MIDNIGHT_SOFT, edgecolor="white")
-axes[0].set_title("log(1 + price)")
-axes[1].hist(df["log_sold"], bins=35, color=TIFFANY_DEEP, edgecolor="white")
-axes[1].set_title("log(1 + units sold)")
-axes[2].bar(df["stock_level"].value_counts().sort_index().index,
-            df["stock_level"].value_counts().sort_index().values, color=TEAL, edgecolor="white")
-axes[2].set_title("Stock level (11 = more than 10)")
+fig, axes = plt.subplots(1, 3, figsize=(TEXT_WIDTH, 2.3))
+axes[0].hist(df["log_price"], bins=35, color=MIDNIGHT_SOFT, edgecolor="white", linewidth=0.3)
+panel(axes[0], "a", "log(1 + price)")
+axes[1].hist(df["log_sold"], bins=35, color=TIFFANY_DEEP, edgecolor="white", linewidth=0.3)
+panel(axes[1], "b", "log(1 + units sold)")
+counts = df["stock_level"].value_counts().sort_index()
+axes[2].bar(counts.index, counts.values, color=[TIFFANY_DEEP if v == 11 else TEAL for v in counts.index],
+            edgecolor="white", linewidth=0.3, width=0.8)
+axes[2].annotate("censored ceiling\n('More than 10')", xy=(10.6, counts.loc[11] * 0.9), xytext=(6.5, counts.loc[11] * 0.78),
+                 fontsize=7, color=MIDNIGHT, ha="center", va="center",
+                 arrowprops=dict(arrowstyle="-|>", color=MUTE, lw=0.6, mutation_scale=7))
+panel(axes[2], "c", "Stock level")
+axes[2].set_xticks(range(1, 12))
 for ax in axes:
-    ax.set_ylabel("Number of listings")
-fig.tight_layout()
+    ax.set_ylabel("Listings")
 save_figure(fig, "fig03_transformed_distributions.png")
 plt.show()
 """)
@@ -473,11 +516,14 @@ candidates = ["log_price", "log_sold", "stock_level", "days_since_update", "size
 corr = df[candidates].corr(method="spearman")
 
 # Figure 4: Spearman correlation between candidate features
-fig, ax = plt.subplots(figsize=(6.5, 5.2))
-sns.heatmap(corr, annot=True, fmt=".2f", cmap=ARDEN_DIVERGING, vmin=-1, vmax=1,
-            linewidths=1, linecolor="white", cbar_kws={"label": "Spearman correlation"}, ax=ax)
-ax.set_title("Correlation between candidate features")
-plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
+nice = {"log_price": "log price", "log_sold": "log units sold", "stock_level": "stock level",
+        "days_since_update": "days since update", "size_oz": "bottle size (oz)"}
+fig, ax = plt.subplots(figsize=(NARROW, 3.3))
+sns.heatmap(corr.rename(index=nice, columns=nice), annot=True, fmt=".2f", cmap=ARDEN_DIVERGING, vmin=-1, vmax=1,
+            linewidths=1, linecolor="white", square=True, annot_kws={"fontsize": 7.5},
+            cbar_kws={"label": "Spearman correlation", "shrink": 0.8}, ax=ax)
+ax.grid(False)
+plt.setp(ax.get_xticklabels(), rotation=30, ha="right")
 save_figure(fig, "fig04_feature_correlation.png")
 plt.show()
 """)
@@ -551,27 +597,32 @@ loadings
 code(r"""
 # Figure 5: explained variance (left) and feature loadings on PC1/PC2 (right)
 X_2d = X_pca_full[:, :2]
-fig, axes = plt.subplots(1, 2, figsize=(12, 4.3))
+fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH, 2.8), gridspec_kw={"width_ratios": [1, 1.35]})
 pcs = ["PC1", "PC2", "PC3"]
-axes[0].bar(pcs, explained, color=[MIDNIGHT, MIDNIGHT_SOFT, GRID])
-axes[0].plot(pcs, explained.cumsum(), color=TIFFANY_DEEP, marker="o", linewidth=2, label="Cumulative")
+axes[0].bar(pcs, explained, color=[MIDNIGHT, MIDNIGHT_SOFT, GRID], width=0.6)
+axes[0].plot(pcs, explained.cumsum(), color=TIFFANY_DEEP, marker="o", label="Cumulative")
 for i, v in enumerate(explained.cumsum()):
-    axes[0].text(i, v + 0.03, str(round(v * 100)) + "%", ha="center", color=MIDNIGHT, fontsize=9)
-axes[0].set_ylim(0, 1.12)
-axes[0].set_ylabel("Share of variance explained")
-axes[0].set_title("Explained variance")
+    axes[0].text(i, v + 0.04, str(round(v * 100, 1)) + "%", ha="center", color=MIDNIGHT, fontsize=7.5)
+axes[0].set_ylim(0, 1.15)
+axes[0].set_ylabel("Share of variance")
+panel(axes[0], "a", "Explained variance")
 axes[0].legend(loc="center right")
 
-axes[1].scatter(X_2d[:, 0], X_2d[:, 1], s=8, color=NOISE_GREY, alpha=0.5)
+axes[1].scatter(X_2d[:, 0], X_2d[:, 1], s=4, color=NOISE_GREY, alpha=0.45, linewidths=0)
+label_offset = {"log_price": (0, 0.25, "center", "bottom"), "log_sold": (0.12, 0.12, "left", "bottom"),
+                "stock_level": (0.12, -0.12, "left", "top")}
 for i, feature in enumerate(FEATURES):
-    axes[1].arrow(0, 0, loadings.iloc[i, 0] * 2.5, loadings.iloc[i, 1] * 2.5, color=TIFFANY_DEEP,
-                  width=0.02, head_width=0.12)
-    axes[1].text(loadings.iloc[i, 0] * 2.9, loadings.iloc[i, 1] * 2.9, feature, color=MIDNIGHT,
-                 fontsize=9, fontweight="bold", ha="center")
-axes[1].set_xlabel("PC1 (" + str(round(explained[0] * 100)) + "%)")
-axes[1].set_ylabel("PC2 (" + str(round(explained[1] * 100)) + "%)")
-axes[1].set_title("Listings and feature directions (biplot)")
-fig.tight_layout()
+    x, y = loadings.iloc[i, 0] * 2.5, loadings.iloc[i, 1] * 2.5
+    axes[1].annotate("", xy=(x, y), xytext=(0, 0),
+                     arrowprops=dict(arrowstyle="-|>", color=TIFFANY_DEEP, lw=1.3, mutation_scale=9))
+    dx, dy, ha, va = label_offset[feature]
+    axes[1].text(x + dx, y + dy, feature, color=MIDNIGHT, fontsize=7.5, fontweight="bold", ha=ha, va=va)
+axes[1].axhline(0, color=GRID, linewidth=0.6)
+axes[1].axvline(0, color=GRID, linewidth=0.6)
+axes[1].set_xlabel("PC1, commercial traction (" + str(round(explained[0] * 100, 1)) + "%)")
+axes[1].set_ylabel("PC2, price tier (" + str(round(explained[1] * 100, 1)) + "%)")
+axes[1].grid(False)
+panel(axes[1], "b", "Biplot: listings and feature directions")
 save_figure(fig, "fig05_pca_variance_biplot.png")
 plt.show()
 """)
@@ -619,20 +670,21 @@ K_FINAL = 4
 
 code(r"""
 # Figure 6: elbow (inertia) and silhouette against k
-fig, ax1 = plt.subplots(figsize=(8.5, 4.3))
-ax1.plot(kmeans_scan.index, kmeans_scan["inertia"], color=MIDNIGHT, marker="o", linewidth=2, label="Inertia")
-ax1.set_xlabel("Number of clusters (k)")
-ax1.set_ylabel("Inertia (within-cluster SS)", color=MIDNIGHT)
+fig, ax1 = plt.subplots(figsize=(TEXT_WIDTH, 2.5))
+ax1.axvspan(K_FINAL - 0.3, K_FINAL + 0.3, color=MIST, zorder=0)
+l1 = ax1.plot(kmeans_scan.index, kmeans_scan["inertia"], color=MIDNIGHT, marker="o", label="Inertia (left axis)")
+ax1.set_xlabel("Number of clusters, k")
+ax1.set_ylabel("Inertia (within-cluster SS)")
+ax1.set_xticks(list(kmeans_scan.index))
 ax2 = ax1.twinx()
-ax2.plot(kmeans_scan.index, kmeans_scan["silhouette"], color=TIFFANY_DEEP, marker="s", linewidth=2, label="Silhouette")
-ax2.set_ylabel("Silhouette score", color=TIFFANY_DEEP)
+l2 = ax2.plot(kmeans_scan.index, kmeans_scan["silhouette"], color=TIFFANY_DEEP, marker="s",
+              label="Silhouette (right axis)")
+ax2.set_ylabel("Silhouette score")
 ax2.grid(False)
 ax2.spines["right"].set_visible(True)
-ax1.axvline(K_FINAL, color=TIFFANY, linestyle="--", linewidth=1.5)
-ax1.text(K_FINAL + 0.1, kmeans_scan["inertia"].max() * 0.95, "chosen k = " + str(K_FINAL), color=TIFFANY_DEEP,
-         fontweight="bold")
-ax1.set_title("Choosing k: elbow and silhouette")
-fig.tight_layout()
+ax1.text(K_FINAL, kmeans_scan["inertia"].max() * 0.98, "chosen k = " + str(K_FINAL), ha="center", va="top",
+         fontsize=7.5, color=TIFFANY_DEEP, fontweight="bold")
+ax1.legend(l1 + l2, [l.get_label() for l in l1 + l2], loc="upper right")
 save_figure(fig, "fig06_kmeans_elbow_silhouette.png")
 plt.show()
 """)
@@ -655,39 +707,44 @@ code(r"""
 # Figure 7: K-Means clusters on the PCA plane, with a silhouette plot per cluster
 
 
-def plot_clusters_pca(ax, labels, title, noise_label=None):
-    unique = sorted(set(labels))
-    for lab in unique:
+def plot_clusters_pca(ax, labels, title, noise_label=None, colours=None):
+    colours = colours or CLUSTER_COLOURS
+    for lab in sorted(set(labels)):
         mask = labels == lab
         if noise_label is not None and lab == noise_label:
-            ax.scatter(X_2d[mask, 0], X_2d[mask, 1], s=14, color=NOISE_GREY, marker="x", label="Noise")
+            ax.scatter(X_2d[mask, 0], X_2d[mask, 1], s=7, color=NOISE_GREY, marker="x", linewidths=0.6,
+                       label="Noise")
         else:
-            ax.scatter(X_2d[mask, 0], X_2d[mask, 1], s=12, alpha=0.75,
-                       color=CLUSTER_COLOURS[lab % len(CLUSTER_COLOURS)], label="Cluster " + str(lab))
-    ax.set_xlabel("PC1")
-    ax.set_ylabel("PC2")
+            ax.scatter(X_2d[mask, 0], X_2d[mask, 1], s=5, alpha=0.85, linewidths=0,
+                       color=colours[lab % len(colours)], label="Cluster " + str(lab))
+    ax.set_xlabel("PC1, commercial traction")
+    ax.set_ylabel("PC2, price tier")
+    ax.grid(False)
     ax.set_title(title)
-    ax.legend(loc="best", fontsize=8, markerscale=1.5)
+    ax.legend(loc="lower left", markerscale=2.2, handletextpad=0.3, borderaxespad=0.2)
 
 
-fig, axes = plt.subplots(1, 2, figsize=(13, 4.8))
-plot_clusters_pca(axes[0], df["kmeans"].values, "K-Means (k = " + str(K_FINAL) + ") on the PCA plane")
+fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH, 2.9))
+plot_clusters_pca(axes[0], df["kmeans"].values, "(a)  K-Means (k = " + str(K_FINAL) + ") on the PCA plane")
 
 sil_values = silhouette_samples(X, df["kmeans"])
 y_lower = 10
 for lab in range(K_FINAL):
     values = np.sort(sil_values[df["kmeans"].values == lab])
     y_upper = y_lower + len(values)
-    axes[1].fill_betweenx(np.arange(y_lower, y_upper), 0, values, color=CLUSTER_COLOURS[lab], alpha=0.85)
-    axes[1].text(-0.08, y_lower + len(values) / 2, str(lab), color=MIDNIGHT, fontweight="bold")
+    axes[1].fill_betweenx(np.arange(y_lower, y_upper), 0, values, color=CLUSTER_COLOURS[lab], linewidth=0)
+    axes[1].text(-0.06, y_lower + len(values) / 2, str(lab), color=MIDNIGHT, fontweight="bold", fontsize=7.5,
+                 ha="right", va="center")
     y_lower = y_upper + 10
-axes[1].axvline(sil_values.mean(), color=TIFFANY, linestyle="--", label="Mean = " + str(round(sil_values.mean(), 3)))
+axes[1].axvline(sil_values.mean(), color=MIDNIGHT, linestyle="--", linewidth=0.9,
+                label="Mean = " + str(round(sil_values.mean(), 3)))
 axes[1].set_xlabel("Silhouette value")
-axes[1].set_ylabel("Listings, grouped by cluster")
+axes[1].set_ylabel("Listings by cluster")
 axes[1].set_yticks([])
-axes[1].set_title("Silhouette per listing")
+axes[1].grid(axis="y", visible=False)
+axes[1].grid(axis="x", visible=True)
+panel(axes[1], "b", "Silhouette per listing")
 axes[1].legend(loc="lower right")
-fig.tight_layout()
 save_figure(fig, "fig07_kmeans_clusters_silhouette.png")
 plt.show()
 """)
@@ -723,17 +780,17 @@ linkage_table
 
 code(r"""
 # Figure 8: dendrograms for the four linkages (truncated to the last 30 merges for readability)
-fig, axes = plt.subplots(2, 2, figsize=(13, 8))
-for ax, method in zip(axes.ravel(), linkage_methods):
-    dendrogram(linkage_results[method], truncate_mode="lastp", p=30, ax=ax,
-               color_threshold=0, above_threshold_color=MIDNIGHT_SOFT, no_labels=True)
-    ax.set_title(method.capitalize() + " linkage (cophenetic r = "
-                 + str(linkage_table.loc[method, "cophenetic_corr"]) + ")")
-    ax.set_ylabel("Merge distance")
-    ax.grid(axis="x", visible=False)
-fig.tight_layout()
-save_figure(fig, "fig08_dendrograms_four_linkages.png")
-plt.show()
+with plt.rc_context({"lines.linewidth": 0.8}):
+    fig, axes = plt.subplots(2, 2, figsize=(TEXT_WIDTH, 4.2))
+    for ax, letter, method in zip(axes.ravel(), "abcd", linkage_methods):
+        dendrogram(linkage_results[method], truncate_mode="lastp", p=30, ax=ax,
+                   color_threshold=0, above_threshold_color=MIDNIGHT_SOFT, no_labels=True)
+        panel(ax, letter, method.capitalize() + " linkage (cophenetic r = "
+              + str(linkage_table.loc[method, "cophenetic_corr"]) + ")")
+        ax.set_ylabel("Merge distance")
+        ax.grid(axis="x", visible=False)
+    save_figure(fig, "fig08_dendrograms_four_linkages.png")
+    plt.show()
 """)
 
 md(r"""
@@ -764,17 +821,19 @@ ward_scan
 code(r"""
 # Figure 9: Ward dendrogram with the cut that gives K_FINAL clusters
 cut_height = (Z_ward[-K_FINAL, 2] + Z_ward[-K_FINAL + 1, 2]) / 2
-fig, ax = plt.subplots(figsize=(11, 4.5))
-dendrogram(Z_ward, truncate_mode="lastp", p=40, ax=ax, color_threshold=cut_height,
-           above_threshold_color=MIDNIGHT, no_labels=True)
-ax.axhline(cut_height, color=TIFFANY_DEEP, linestyle="--", linewidth=2)
-ax.text(ax.get_xlim()[1] * 0.99, cut_height * 1.04, "cut: " + str(K_FINAL) + " clusters",
-        color=TIFFANY_DEEP, ha="right", fontweight="bold")
-ax.set_title("Ward dendrogram and the chosen cut")
-ax.set_ylabel("Merge distance (Ward)")
-ax.grid(axis="x", visible=False)
-save_figure(fig, "fig09_ward_dendrogram_cut.png")
-plt.show()
+set_link_color_palette([CLUSTER_COLOURS[0], CLUSTER_COLOURS[1], CLUSTER_COLOURS[2], CLUSTER_COLOURS[3]])
+with plt.rc_context({"lines.linewidth": 0.9}):
+    fig, ax = plt.subplots(figsize=(TEXT_WIDTH, 2.6))
+    dendrogram(Z_ward, truncate_mode="lastp", p=40, ax=ax, color_threshold=cut_height,
+               above_threshold_color=MIDNIGHT, no_labels=True)
+    ax.axhline(cut_height, color=MIDNIGHT, linestyle="--", linewidth=0.9)
+    ax.text(ax.get_xlim()[1] * 0.995, cut_height + 0.8, "cut at " + str(round(cut_height, 1)) + " -> "
+            + str(K_FINAL) + " clusters", color=MIDNIGHT, ha="right", va="bottom", fontsize=7.5, fontweight="bold")
+    ax.set_ylabel("Merge distance (Ward)")
+    ax.grid(axis="x", visible=False)
+    save_figure(fig, "fig09_ward_dendrogram_cut.png")
+    plt.show()
+set_link_color_palette(None)
 """)
 
 # ---------------------------------------------------------------------------
@@ -791,14 +850,13 @@ dist_k, _ = neighbours.kneighbors(X)
 k_distance = np.sort(dist_k[:, -1])
 
 # Figure 10: k-distance plot used to pick eps
-fig, ax = plt.subplots(figsize=(8.5, 4.2))
-ax.plot(k_distance, color=MIDNIGHT, linewidth=2)
-for q, colour in [(0.90, TIFFANY), (0.95, TIFFANY_DEEP)]:
-    ax.axhline(np.quantile(k_distance, q), color=colour, linestyle="--", linewidth=1.3,
+fig, ax = plt.subplots(figsize=(TEXT_WIDTH, 2.3))
+ax.plot(k_distance, color=MIDNIGHT)
+for q, colour in [(0.90, TIFFANY_DEEP), (0.95, "#C99A2E")]:
+    ax.axhline(np.quantile(k_distance, q), color=colour, linestyle="--", linewidth=0.9,
                label=str(int(q * 100)) + "th percentile = " + str(round(np.quantile(k_distance, q), 2)))
 ax.set_xlabel("Listings sorted by distance")
-ax.set_ylabel("Distance to " + str(MIN_SAMPLES) + "th nearest neighbour")
-ax.set_title("k-distance plot for choosing eps")
+ax.set_ylabel("Distance to " + str(MIN_SAMPLES) + "th neighbour")
 ax.legend(loc="upper left")
 save_figure(fig, "fig10_dbscan_k_distance.png")
 plt.show()
@@ -844,9 +902,8 @@ noise_profile
 
 code(r"""
 # Figure 11: DBSCAN result on the PCA plane
-fig, ax = plt.subplots(figsize=(7.5, 5))
-plot_clusters_pca(ax, df["dbscan"].values, "DBSCAN (eps = " + str(EPS_FINAL) + ", min_samples = "
-                  + str(MIN_SAMPLES) + ")", noise_label=-1)
+fig, ax = plt.subplots(figsize=(NARROW, 3.0))
+plot_clusters_pca(ax, df["dbscan"].values, "", noise_label=-1, colours=[MIDNIGHT_SOFT, "#C8553D"])
 save_figure(fig, "fig11_dbscan_clusters.png")
 plt.show()
 """)
@@ -859,7 +916,253 @@ This is a finding in itself: the listings do **not** contain separate dense regi
 
 # ---------------------------------------------------------------------------
 md(r"""
-## 9. Model comparison and validation
+## 9. HDBSCAN
+
+HDBSCAN (Campello, Moulavi and Sander, 2013; McInnes, Healy and Astels, 2017) is the hierarchical successor to DBSCAN and has been part of scikit-learn since version 1.3 (2023). Instead of one fixed `eps`, it builds a hierarchy over **all** density levels and keeps the clusters that persist the longest, so it can find clusters of different densities. It needs two settings: `min_cluster_size` (the smallest group worth calling a cluster) and `min_samples` (how conservative the density estimate is).
+
+This is a direct test of Section 8: if DBSCAN failed only because no single `eps` suits every region of the data, HDBSCAN should find clear segments.
+""")
+
+code(r"""
+# Grid over both settings. min_samples = 6 matches DBSCAN, so the two density methods are comparable.
+hdbscan_rows = []
+for mcs in [10, 20, 30, 50, 100]:
+    for min_s in [3, 6, 10]:
+        labels_h = HDBSCAN(min_cluster_size=mcs, min_samples=min_s).fit_predict(X)
+        n_clusters = len(set(labels_h)) - (1 if -1 in labels_h else 0)
+        mask = labels_h != -1
+        sil = silhouette_score(X[mask], labels_h[mask]) if n_clusters >= 2 else np.nan
+        hdbscan_rows.append({"min_cluster_size": mcs, "min_samples": min_s, "clusters": n_clusters,
+                             "noise_pct": round((~mask).mean() * 100, 1),
+                             "silhouette_clustered": round(sil, 3) if not np.isnan(sil) else np.nan})
+hdbscan_grid = pd.DataFrame(hdbscan_rows)
+save_table(hdbscan_grid.set_index(["min_cluster_size", "min_samples"]), "table15_hdbscan_grid.csv")
+hdbscan_grid.pivot(index="min_cluster_size", columns="min_samples", values="noise_pct")
+""")
+
+code(r"""
+MIN_CLUSTER_SIZE = 30   # about 3% of listings: the smallest group worth its own business action
+hdbscan = HDBSCAN(min_cluster_size=MIN_CLUSTER_SIZE, min_samples=MIN_SAMPLES)
+df["hdbscan"] = hdbscan.fit_predict(X)
+df["hdbscan_strength"] = hdbscan.probabilities_   # membership strength (0 = noise, 1 = cluster core)
+print("HDBSCAN min_cluster_size =", MIN_CLUSTER_SIZE, "min_samples =", MIN_SAMPLES)
+print(df["hdbscan"].value_counts().sort_index())
+
+# Profile of each HDBSCAN group. The key column is the share of listings sitting on the stock ceiling
+# (11 = "More than 10 available"), which is where the marketplace censors stock.
+hdbscan_profile = df.groupby("hdbscan").agg(
+    listings=("price", "size"),
+    median_price=("price", "median"),
+    median_units_sold=("sold", "median"),
+    median_stock_level=("stock_level", "median"),
+    pct_at_stock_ceiling=("stock_level", lambda s: round((s == 11).mean() * 100, 1)),
+)
+hdbscan_profile.index = ["Noise" if i == -1 else "Cluster " + str(i) for i in hdbscan_profile.index]
+save_table(hdbscan_profile, "table16_hdbscan_profile.csv")
+print("Share of all listings at the stock ceiling:", round((df["stock_level"] == 11).mean() * 100, 1), "%")
+hdbscan_profile
+""")
+
+code(r"""
+# Robustness: is the result produced by ties on the integer stock scale, or by the stock feature at all?
+rng = np.random.default_rng(SEED)
+jitter_runs = []
+for run in range(10):
+    jittered = df[FEATURES].copy()
+    jittered["stock_level"] = jittered["stock_level"] + rng.uniform(-0.5, 0.5, len(df))   # break the ties
+    lab = HDBSCAN(min_cluster_size=MIN_CLUSTER_SIZE, min_samples=MIN_SAMPLES).fit_predict(
+        StandardScaler().fit_transform(jittered))
+    jitter_runs.append({"clusters": len(set(lab)) - (1 if -1 in lab else 0), "noise_pct": (lab == -1).mean() * 100})
+jitter_runs = pd.DataFrame(jitter_runs)
+lab_no_stock = HDBSCAN(min_cluster_size=MIN_CLUSTER_SIZE, min_samples=MIN_SAMPLES).fit_predict(
+    StandardScaler().fit_transform(df[["log_price", "log_sold"]]))
+print("Stock jittered by +/-0.5 (10 runs): clusters", sorted(jitter_runs["clusters"].unique()),
+      "| mean noise", round(jitter_runs["noise_pct"].mean(), 1), "%")
+print("Price and sales only: clusters", len(set(lab_no_stock)) - (1 if -1 in lab_no_stock else 0),
+      "| noise", round((lab_no_stock == -1).mean() * 100, 1), "%")
+""")
+
+code(r"""
+# Figure 18: HDBSCAN on the PCA plane, and how its clusters line up with the stock ceiling
+fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH, 2.9), gridspec_kw={"width_ratios": [1.25, 1]})
+plot_clusters_pca(axes[0], df["hdbscan"].values, "(a)  HDBSCAN on the PCA plane", noise_label=-1,
+                  colours=[MIDNIGHT_SOFT, "#C8553D"])
+ceiling = hdbscan_profile["pct_at_stock_ceiling"]
+bar_colours = [NOISE_GREY if name == "Noise" else [MIDNIGHT_SOFT, "#C8553D"][int(name.split()[-1])]
+               for name in ceiling.index]
+bars = axes[1].bar(ceiling.index, ceiling.values, color=bar_colours, width=0.6)
+overall = (df["stock_level"] == 11).mean() * 100
+axes[1].axhline(overall, color=TIFFANY_DEEP, linestyle="--", linewidth=0.9,
+                label="All listings: " + str(round(overall, 1)) + "%")
+for bar, v, n in zip(bars, ceiling.values, hdbscan_profile["listings"].values):
+    axes[1].text(bar.get_x() + bar.get_width() / 2, v + 3, str(v) + "%\nn = " + str(n), ha="center", va="bottom",
+                 fontsize=7, color=MIDNIGHT)
+axes[1].set_ylim(0, 118)
+axes[1].set_ylabel("Listings at stock ceiling (%)")
+panel(axes[1], "b", "Groups vs the censored stock ceiling")
+axes[1].legend(loc="upper right")
+save_figure(fig, "fig18_hdbscan.png")
+plt.show()
+""")
+
+md(r"""
+**What HDBSCAN tells us.** Across the whole grid (Table 15) HDBSCAN leaves between about 35% and 52% of listings unassigned whenever it finds more than one cluster, and with `min_samples` = 6 it returns the same answer for every `min_cluster_size` from 20 to 100: two clusters and 47% noise. The larger cluster is almost entirely made of listings at the censored stock ceiling (89% sit at 11, against 41.5% of all listings); the smaller one is a low-stock group (median 3 units). Breaking the ties on the stock scale, or removing stock altogether, still leaves roughly 40–50% of listings outside any dense region.
+
+So the more flexible density method confirms, rather than overturns, the DBSCAN result: the catalogue has no well-separated dense segments. The densest region HDBSCAN finds is partly created by the way the marketplace records stock, which is a useful data-quality insight but not a commercial segmentation.
+""")
+
+# ---------------------------------------------------------------------------
+md(r"""
+## 10. TabClustPFN (tabular foundation model)
+
+TabClustPFN (Zhao et al., 2026; NeurIPS 2026) is a **prior-fitted network**: a transformer pre-trained on millions of synthetic clustering problems, in the same family as the TabPFN foundation models for tabular data. It is not fitted to this dataset at all. It reads the whole table in context and returns cluster labels, and it can also **predict the number of clusters** itself, in a single forward pass with no tuning.
+
+That makes it a useful independent check on two choices made so far: the number of segments, and whether a modern pre-trained model finds a better partition than K-Means. I run it twice: with automatic k, and with k fixed at 4 for a like-for-like comparison. Inputs are the same three standardised features.
+
+*Set-up note.* The model is not on PyPI, so the next cell fetches the authors' code and pretrained checkpoint (licence CC BY-NC 4.0, used here for non-commercial coursework). The code imports R's `rpy2` only to generate synthetic **pre-training** data; inference never uses it, so a placeholder module that raises an error if called is supplied when R is not installed. If the model cannot be loaded (for example offline), the cell falls back to the labels saved from the assessed run and says so.
+""")
+
+code(r"""
+import sys, subprocess, importlib, importlib.util, tempfile, time
+
+TCP_DIR = Path(os.environ.get("TABCLUSTPFN_DIR", "TabClustPFN"))
+TCP_CKPT = Path(os.environ.get("TABCLUSTPFN_CKPT", str(TCP_DIR / "tabclustpfn.ckpt")))
+TCP_CKPT_ID = "1GzZBgVXwOB8y9JM89xa7ln-la6v2sUO3"           # official checkpoint (Google Drive, from the README)
+TCP_SAVED = OUTPUT_DIR / "tabclustpfn_labels.csv"           # labels from the assessed run (fallback)
+
+
+def ensure_rpy2_placeholder():
+    # rpy2 is only used to synthesise pre-training data; inference does not call it
+    try:
+        importlib.import_module("rpy2.robjects")
+        return
+    except Exception:
+        pass
+    stub = Path(tempfile.gettempdir()) / "tabclustpfn_stubs" / "rpy2" / "robjects"
+    stub.mkdir(parents=True, exist_ok=True)
+    (stub.parent / "__init__.py").write_text("")
+    (stub / "__init__.py").write_text(
+        "class _Unavailable:\n"
+        "    def __getattr__(self, name):\n"
+        "        raise RuntimeError('rpy2/R is only needed to generate TabClustPFN pre-training data')\n"
+        "    def __call__(self, *a, **k):\n"
+        "        raise RuntimeError('rpy2/R is only needed to generate TabClustPFN pre-training data')\n"
+        "r = _Unavailable()\nNULL = None\ndefault_converter = None\n"
+        "FloatVector = IntVector = StrVector = _Unavailable()\n")
+    (stub / "packages.py").write_text("from . import _Unavailable as importr\n")
+    (stub / "conversion.py").write_text("from . import _Unavailable as localconverter\n")
+    sys.path.insert(0, str(stub.parent.parent))
+
+
+tcp_model = None
+try:
+    if not TCP_DIR.exists():
+        subprocess.run(["git", "clone", "--depth", "1", "https://github.com/Tianqi-Zhao/TabClustPFN.git", str(TCP_DIR)],
+                       check=True)
+    for package in ["torch", "einops", "transformers", "tensorboard", "psutil", "tqdm"]:
+        if importlib.util.find_spec(package) is None:
+            subprocess.run([sys.executable, "-m", "pip", "install", "-q", package], check=True)
+    if not TCP_CKPT.exists():
+        if importlib.util.find_spec("gdown") is None:
+            subprocess.run([sys.executable, "-m", "pip", "install", "-q", "gdown"], check=True)
+        subprocess.run([sys.executable, "-m", "gdown", TCP_CKPT_ID, "-O", str(TCP_CKPT)], check=True)
+    ensure_rpy2_placeholder()
+    sys.path.insert(0, str(TCP_DIR))
+    import torch
+    from cluster import load_model as tcp_load_model, cluster as tcp_cluster
+    torch.manual_seed(SEED)
+    TCP_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    tcp_model = tcp_load_model(str(TCP_CKPT), TCP_DEVICE)
+    print("TabClustPFN loaded on", TCP_DEVICE)
+except Exception as error:
+    print("TabClustPFN could not be loaded here (" + type(error).__name__ + ": " + str(error)[:120] + ").")
+    print("Falling back to the labels saved from the assessed run:", TCP_SAVED)
+
+
+def fit_tabclustpfn(data, k=None):
+    labels, k_used = tcp_cluster(tcp_model, np.asarray(data), num_clusters=k, device=TCP_DEVICE)
+    return np.asarray(labels)
+""")
+
+code(r"""
+if tcp_model is not None:
+    start = time.time()
+    labels_auto, k_auto = tcp_cluster(tcp_model, X, num_clusters=None, device=TCP_DEVICE)
+    seconds_auto = time.time() - start
+    labels_k4 = fit_tabclustpfn(X, K_FINAL)
+    df["tabclustpfn"] = np.asarray(labels_auto)
+    df["tabclustpfn_k4"] = labels_k4
+    df[["tabclustpfn", "tabclustpfn_k4"]].to_csv(TCP_SAVED, index=False)
+    print("Automatic k predicted by the model:", k_auto, "| inference time:", round(seconds_auto, 1), "s")
+else:
+    saved = pd.read_csv(TCP_SAVED)
+    df["tabclustpfn"], df["tabclustpfn_k4"] = saved["tabclustpfn"].values, saved["tabclustpfn_k4"].values
+    k_auto = df["tabclustpfn"].nunique()
+
+# Two robustness checks specific to an in-context model: does k stay the same on subsamples,
+# and does the order of the rows matter?
+tcp_checks = {}
+if tcp_model is not None:
+    rng = np.random.default_rng(SEED)
+    sub_k = []
+    for run in range(30):
+        idx = rng.choice(len(X), size=int(0.8 * len(X)), replace=False)
+        sub_k.append(tcp_cluster(tcp_model, X[idx], num_clusters=None, device=TCP_DEVICE)[1])
+    perm = rng.permutation(len(X))
+    shuffled = fit_tabclustpfn(X[perm])
+    restored = np.empty_like(shuffled)
+    restored[perm] = shuffled
+    tcp_checks = {"predicted_k": int(k_auto),
+                  "subsamples_with_same_k": int(sum(k == k_auto for k in sub_k)),
+                  "ari_row_shuffle": round(adjusted_rand_score(df["tabclustpfn"], restored), 3)}
+    print("Same k on", tcp_checks["subsamples_with_same_k"], "of 30 subsamples | ARI after shuffling rows:",
+          tcp_checks["ari_row_shuffle"])
+
+tcp_profile_rows = []
+for column, variant in [("tabclustpfn", "auto k = " + str(k_auto)), ("tabclustpfn_k4", "k = " + str(K_FINAL))]:
+    for lab, group in df.groupby(column):
+        tcp_profile_rows.append({
+            "variant": variant, "cluster": lab, "listings": len(group),
+            "median_price": round(group["price"].median(), 2),
+            "median_units_sold": group["sold"].median(),
+            "share_of_units_sold_pct": round(group["sold"].sum() / df["sold"].sum() * 100, 1),
+            "median_stock_level": group["stock_level"].median(),
+            "pct_at_stock_ceiling": round((group["stock_level"] == 11).mean() * 100, 1)})
+tcp_profile = pd.DataFrame(tcp_profile_rows).set_index(["variant", "cluster"])
+save_table(tcp_profile, "table17_tabclustpfn.csv")
+print("ARI with K-Means: auto", round(adjusted_rand_score(df["kmeans"], df["tabclustpfn"]), 3),
+      "| k = 4", round(adjusted_rand_score(df["kmeans"], df["tabclustpfn_k4"]), 3))
+tcp_profile
+""")
+
+code(r"""
+# Figure 19: TabClustPFN partitions on the PCA plane, and how the k = 4 version maps onto K-Means
+fig, axes = plt.subplots(1, 3, figsize=(TEXT_WIDTH, 2.6), gridspec_kw={"width_ratios": [1, 1, 0.9]})
+tcp_colours = [MIDNIGHT_SOFT, "#8FA3B1", TIFFANY, "#7D6B9E"]   # neutral: segment colours stay reserved for K-Means
+plot_clusters_pca(axes[0], df["tabclustpfn"].values, "(a)  Automatic k = " + str(k_auto), colours=tcp_colours)
+plot_clusters_pca(axes[1], df["tabclustpfn_k4"].values, "(b)  Fixed k = " + str(K_FINAL), colours=tcp_colours)
+cross = pd.crosstab(df["tabclustpfn_k4"], df["kmeans"])
+sns.heatmap(cross, annot=True, fmt="d", cmap=ARDEN_CMAP, cbar=False, linewidths=1, linecolor="white",
+            annot_kws={"fontsize": 7}, ax=axes[2])
+axes[2].set_xlabel("K-Means cluster")
+axes[2].set_ylabel("TabClustPFN (k = 4)")
+axes[2].grid(False)
+panel(axes[2], "c", "Overlap with K-Means")
+for ax in axes[:2]:
+    ax.legend(loc="lower left", markerscale=2, fontsize=6.5, handletextpad=0.2, borderaxespad=0.1)
+save_figure(fig, "fig19_tabclustpfn.png")
+plt.show()
+""")
+
+md(r"""
+**What TabClustPFN tells us.** Left to choose for itself, the foundation model predicts **two** clusters, and it does so consistently: the same k on every subsample, and identical labels when the rows are shuffled. Its split is the most basic one in the catalogue, listings with thin stock against everything else; almost all of the K-Means low-stock segment falls in its smaller cluster. This is an independent confirmation, from a model that never saw this data during training, that stock position is the strongest structure in the catalogue.
+
+Forced to four clusters it does noticeably worse than K-Means on every internal index, and one of its groups is almost entirely listings at the censored stock ceiling, the same artefact HDBSCAN found. The pre-trained model is therefore an excellent check on structure and on the choice of k, but on this small, low-dimensional table it does not beat a well-prepared K-Means for a business segmentation.
+""")
+
+# ---------------------------------------------------------------------------
+md(r"""
+## 11. Model comparison and validation
 
 Clustering has no "correct answer" to score against, so I combine four kinds of evidence:
 
@@ -908,14 +1211,26 @@ def fit_dbscan(data):
     return DBSCAN(eps=EPS_FINAL, min_samples=MIN_SAMPLES).fit_predict(data)
 
 
+def fit_hdbscan(data):
+    return HDBSCAN(min_cluster_size=MIN_CLUSTER_SIZE, min_samples=MIN_SAMPLES).fit_predict(data)
+
+
 comparison_rows = []
 for name, column, fit_function, ignore_noise in [
         ("K-Means", "kmeans", fit_kmeans, False),
         ("Hierarchical (Ward)", "ward", fit_ward, False),
-        ("DBSCAN", "dbscan", fit_dbscan, True)]:
+        ("DBSCAN", "dbscan", fit_dbscan, True),
+        ("HDBSCAN", "hdbscan", fit_hdbscan, True),
+        ("TabClustPFN (auto k)", "tabclustpfn", fit_tabclustpfn if tcp_model is not None else None, False),
+        ("TabClustPFN (k = 4)", "tabclustpfn_k4",
+         (lambda data: fit_tabclustpfn(data, K_FINAL)) if tcp_model is not None else None, False)]:
     labels = df[column].values
     scores = internal_scores(labels, ignore_noise=ignore_noise)
-    stab_mean, stab_std = bootstrap_stability(fit_function)
+    if fit_function is not None:
+        stab_mean, stab_std = bootstrap_stability(fit_function)
+    else:      # TabClustPFN unavailable in this environment: reuse the stability measured in the assessed run
+        previous = pd.read_csv(TABLE_DIR / "table11_model_comparison.csv", index_col=0)
+        stab_mean, stab_std = previous.loc[name, "stability_ARI_mean"], previous.loc[name, "stability_ARI_sd"]
     n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
     sizes = pd.Series(labels[labels != -1]).value_counts()
     row = {"model": name, "clusters": n_clusters, "noise_pct": round((labels == -1).mean() * 100, 1)}
@@ -959,26 +1274,31 @@ sensitivity
 """)
 
 code(r"""
-# Figure 12: side-by-side comparison of the three models
-metrics_to_plot = [("silhouette", "Silhouette (higher = better)"),
-                   ("davies_bouldin", "Davies-Bouldin (lower = better)"),
-                   ("stability_ARI_mean", "Stability ARI (higher = better)")]
-fig, axes = plt.subplots(1, 3, figsize=(13, 3.9))
-model_colours = [MIDNIGHT, MIDNIGHT_SOFT, TEAL]
-for ax, (metric, label) in zip(axes, metrics_to_plot):
+# Figure 12: side-by-side comparison of the models
+metrics_to_plot = [("silhouette", "Silhouette (higher is better)"),
+                   ("davies_bouldin", "Davies-Bouldin (lower is better)"),
+                   ("stability_ARI_mean", "Stability ARI (higher is better)")]
+short = {"Hierarchical (Ward)": "Ward", "TabClustPFN (auto k)": "TCP auto", "TabClustPFN (k = 4)": "TCP k=4"}
+fig, axes = plt.subplots(1, 3, figsize=(TEXT_WIDTH, 2.9))
+for ax, letter, (metric, label) in zip(axes, "abc", metrics_to_plot):
     values = comparison[metric]
-    bars = ax.bar(comparison.index, values, color=model_colours)
+    names = [short.get(m, m) for m in comparison.index]
+    bars = ax.bar(names, values, color=[MODEL_COLOURS[m] for m in comparison.index], width=0.65,
+                  edgecolor="white", linewidth=0.4)
+    for bar, m in zip(bars, comparison.index):
+        if comparison.loc[m, "noise_pct"] > 0:      # density models: scored on clustered points only
+            bar.set_hatch("////")
     for bar, v in zip(bars, values):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() * 1.02, str(v), ha="center",
-                color=MIDNIGHT, fontsize=9, fontweight="bold")
-    ax.set_title(label, fontsize=11)
-    ax.set_ylim(0, max(values) * 1.25)
-    plt.setp(ax.get_xticklabels(), rotation=20, ha="right")
-    ax.grid(axis="x", visible=False)
-fig.text(0.5, -0.06, "DBSCAN scores are computed on clustered points only ("
-         + str(comparison.loc["DBSCAN", "noise_pct"]) + "% of listings labelled as noise).",
-         ha="center", color=MUTE, fontsize=9)
-fig.tight_layout()
+        ax.text(bar.get_x() + bar.get_width() / 2, max(v, 0) + max(values) * 0.03, format(v, ".3f"), ha="center",
+                va="bottom", color=MIDNIGHT, fontsize=7)
+    panel(ax, letter, label)
+    ax.set_ylim(min(0, values.min() * 1.3), max(values) * 1.22)
+    ax.axhline(0, color="#9AAAB4", linewidth=0.6)
+    plt.setp(ax.get_xticklabels(), rotation=40, ha="right")
+fig.supxlabel("Hatched bars: DBSCAN and HDBSCAN are scored on clustered listings only ("
+              + ", ".join(str(comparison.loc[m, "noise_pct"]) + "% noise for " + m
+                          for m in comparison.index if comparison.loc[m, "noise_pct"] > 0) + ").",
+              fontsize=7, color=MUTE)
 save_figure(fig, "fig12_model_comparison.png")
 plt.show()
 """)
@@ -989,6 +1309,8 @@ md(r"""
 - **K-Means** has the best silhouette (0.307), the lowest Davies-Bouldin (1.015) and the highest Calinski-Harabasz of the three. More importantly, it is **stable**: the grouping barely changes when 20% of the listings are removed (mean ARI 0.93), when the random seed changes (0.98), or when the top 1% of sellers are dropped (0.94).
 - **Ward** produces similar-sized groups but scores lower on every index, and its grouping is **unstable** under resampling (ARI 0.48). Because every merge in a hierarchy is final, a few changed points early on can reshape the whole tree.
 - **DBSCAN** does not segment this data (see Section 8). Its silhouette on clustered points is about zero, and one cluster holds 91% of listings.
+- **TabClustPFN** with automatic k is the most stable model of all and confirms the basic low-stock split, but at k = 4 it trails K-Means on every index (Section 10).
+- **HDBSCAN** shows the highest silhouette (0.48) and lowest Davies-Bouldin (0.79), but these are computed on the 53% of listings it keeps: dropping the hardest 47% as noise makes any index look better. Its larger cluster is the stock-ceiling pile-up (Section 9), so it is a data-quality finding rather than a segmentation.
 - **Scaling matters.** Swapping z-scores for min-max scaling changes the K-Means grouping noticeably (ARI 0.49). Min-max gives `stock_level`, which only takes values 1 to 11, a different weight from the two log measures. I keep z-scores because they give each feature equal variance, but this is recorded as a limitation: the segment boundaries depend partly on how the features are weighted.
 
 None of the silhouette values are high. A score around 0.3 means the clusters are real but overlapping regions of a continuum, so the segments should be treated as useful groupings for decisions, not as natural categories.
@@ -996,9 +1318,9 @@ None of the silhouette values are high. A score around 0.3 means the clusters ar
 
 # ---------------------------------------------------------------------------
 md(r"""
-## 10. Final model and cluster profiles
+## 12. Final model and cluster profiles
 
-**Final model: K-Means with k = 4.** On technical grounds it has the best internal scores and by far the best stability. On business grounds it puts every listing into a segment (no "noise" bucket to explain), its centroids can be read directly as a typical price, sales level and stock position, and new listings can be assigned to the nearest centroid instantly, which suits a fast-growing catalogue. Ward is kept as a cross-check (ARI with K-Means is reported in the ledger) and DBSCAN as an anomaly flag.
+**Final model: K-Means with k = 4.** On technical grounds it has the best internal scores and by far the best stability. On business grounds it puts every listing into a segment (no "noise" bucket to explain), its centroids can be read directly as a typical price, sales level and stock position, and new listings can be assigned to the nearest centroid instantly, which suits a fast-growing catalogue. Ward is kept as a cross-check (ARI with K-Means is reported in the ledger), DBSCAN as an anomaly flag and HDBSCAN as a data-quality probe.
 
 The profile describes each cluster in business units: typical price, typical units sold, stock position, share of all units sold, product-type mix, main brands and where listings ship from.
 """)
@@ -1040,46 +1362,48 @@ z_profile[FINAL] = df[FINAL].values
 z_means = z_profile.groupby(FINAL).mean()
 z_means.index = ["Cluster " + str(i) for i in z_means.index]
 
-fig, axes = plt.subplots(1, 2, figsize=(13, 4.3), gridspec_kw={"width_ratios": [1.1, 1]})
+fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH, 2.6), gridspec_kw={"width_ratios": [1.1, 1]})
 sns.heatmap(z_means, annot=True, fmt=".2f", cmap=ARDEN_DIVERGING, center=0, vmin=-2, vmax=2,
-            linewidths=1, linecolor="white", cbar_kws={"label": "Mean z-score"}, ax=axes[0])
-axes[0].set_title("Cluster centres relative to the average listing")
+            linewidths=1, linecolor="white", annot_kws={"fontsize": 7.5},
+            cbar_kws={"label": "Mean z-score", "shrink": 0.85}, ax=axes[0])
+axes[0].grid(False)
 axes[0].set_ylabel("")
+panel(axes[0], "a", "Centres relative to the average listing")
 
 share = profile[["share_of_listings_pct", "share_of_units_sold_pct"]].copy()
-share.index = ["Cluster " + str(i) for i in share.index]
 x_pos = np.arange(len(share))
-axes[1].bar(x_pos - 0.2, share["share_of_listings_pct"], width=0.4, color=MIDNIGHT_SOFT, label="Share of listings")
-axes[1].bar(x_pos + 0.2, share["share_of_units_sold_pct"], width=0.4, color=TIFFANY_DEEP, label="Share of units sold")
+for i, lab in enumerate(share.index):
+    axes[1].bar(i - 0.2, share.loc[lab, "share_of_listings_pct"], width=0.4, color=CLUSTER_COLOURS[lab], alpha=0.35)
+    axes[1].bar(i + 0.2, share.loc[lab, "share_of_units_sold_pct"], width=0.4, color=CLUSTER_COLOURS[lab])
+from matplotlib.patches import Patch
+axes[1].legend(handles=[Patch(facecolor=MIDNIGHT_SOFT, alpha=0.35, label="Share of listings (pale)"),
+                        Patch(facecolor=MIDNIGHT_SOFT, label="Share of units sold (solid)")], loc="upper left")
 axes[1].set_xticks(x_pos)
-axes[1].set_xticklabels(share.index)
+axes[1].set_xticklabels(["Cluster " + str(i) for i in share.index])
 axes[1].set_ylabel("Percent")
-axes[1].set_title("Listings vs units sold by cluster")
-axes[1].legend(loc="upper left")
-axes[1].grid(axis="x", visible=False)
-fig.tight_layout()
+panel(axes[1], "b", "Listings vs units sold")
 save_figure(fig, "fig13_cluster_profiles.png")
 plt.show()
 """)
 
 code(r"""
-# Figure 14: distributions of price and units sold inside each cluster
-fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+# Figure 14: distributions of price, units sold and stock inside each cluster
+fig, axes = plt.subplots(1, 3, figsize=(TEXT_WIDTH, 2.4))
 order = sorted(df[FINAL].unique())
 palette = [CLUSTER_COLOURS[i] for i in order]
-sns.boxplot(data=df, x=FINAL, y="price", order=order, palette=palette, ax=axes[0], fliersize=2)
-axes[0].set_title("Price by cluster")
-axes[0].set_ylabel("Price (USD)")
-sns.boxplot(data=df, x=FINAL, y="sold", order=order, palette=palette, ax=axes[1], fliersize=2)
+box_style = dict(order=order, palette=palette, hue=FINAL, legend=False, fliersize=1.5, linewidth=0.7, width=0.6)
+sns.boxplot(data=df, x=FINAL, y="price", ax=axes[0], **box_style)
+panel(axes[0], "a", "Price")
+axes[0].set_ylabel("Price (US$)")
+sns.boxplot(data=df, x=FINAL, y="sold", ax=axes[1], **box_style)
 axes[1].set_yscale("log")
-axes[1].set_title("Units sold by cluster (log scale)")
+panel(axes[1], "b", "Units sold (log scale)")
 axes[1].set_ylabel("Units sold")
-sns.boxplot(data=df, x=FINAL, y="stock_level", order=order, palette=palette, ax=axes[2], fliersize=2)
-axes[2].set_title("Stock level by cluster")
+sns.boxplot(data=df, x=FINAL, y="stock_level", ax=axes[2], **box_style)
+panel(axes[2], "c", "Stock level")
 axes[2].set_ylabel("Stock level (11 = more than 10)")
 for ax in axes:
     ax.set_xlabel("Cluster")
-fig.tight_layout()
 save_figure(fig, "fig14_cluster_distributions.png")
 plt.show()
 """)
@@ -1100,7 +1424,7 @@ These names describe the data; the business reasons behind each pattern (for exa
 code(r"""
 # Save the frozen results ledger: cluster labels for every listing plus the headline numbers
 df[["Item_Name", "details", "product_type", "price", "sold", "stock_level", "stock_imputed",
-    "country", "kmeans", "ward", "dbscan"]].to_csv(OUTPUT_DIR / "cluster_assignments.csv", index=False)
+    "country", "kmeans", "ward", "dbscan", "hdbscan", "tabclustpfn", "tabclustpfn_k4"]].to_csv(OUTPUT_DIR / "cluster_assignments.csv", index=False)
 
 ledger = {
     "rows_raw": int(len(raw)),
@@ -1109,6 +1433,9 @@ ledger = {
     "k_final": K_FINAL,
     "dbscan_eps": EPS_FINAL,
     "dbscan_min_samples": MIN_SAMPLES,
+    "hdbscan_min_cluster_size": MIN_CLUSTER_SIZE,
+    "hdbscan_min_samples": MIN_SAMPLES,
+    "tabclustpfn_checks": tcp_checks,
     "pca_explained_pc1_pc2": [round(float(v), 3) for v in explained[:2]],
     "comparison": comparison.reset_index().to_dict(orient="records"),
     "sensitivity": sensitivity.reset_index().to_dict(orient="records"),

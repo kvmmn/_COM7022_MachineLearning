@@ -21,6 +21,9 @@ BLOB = REPO + "/blob/main/COM7022%20-%20Assignment/"
 REPO_DIR = "COM7022 - Assignment/"
 PAGES = "https://kvmmn.github.io/_COM7022_MachineLearning/"
 TITLE = "Product Segmentation and Performance Clustering for an E-Commerce Fragrance Marketplace"
+SUBTITLE = ("An end-to-end unsupervised machine learning investigation comparing K-Means, Ward hierarchical "
+            "clustering, DBSCAN, HDBSCAN and the TabClustPFN foundation model across 1,000 marketplace listings, "
+            "translated into evidence-based actions for catalogue strategy.")
 
 
 def fmt(v):
@@ -77,8 +80,12 @@ def build_tables():
          "Irreversible merges; O(n²) memory; sensitive to sampling"],
         ["DBSCAN", "Density-based: grows clusters from dense regions", "Arbitrary shapes; explicit noise and outlier detection",
          "Needs density gaps; sensitive to ε and MinPts"],
+        ["HDBSCAN", "Hierarchical density: keeps the most persistent clusters across all densities",
+         "No ε; handles varying density; membership strengths", "Still needs density gaps; can leave many points as noise"],
+        ["TabClustPFN", "Pre-trained transformer: clusters the table in context, no fitting",
+         "Predicts k itself; no tuning; seconds to run", "Black box; external weights; small-data context limit"],
     ], columns=["Technique", "Principle", "Strengths", "Limitations"]),
-        "Comparison of the three clustering paradigms applied.", None)
+        "Comparison of the clustering techniques applied.", None)
 
     pca = _t("table06_pca_loadings.csv")
     pca.columns = ["Feature", "PC1 (48.6%)", "PC2 (30.1%)", "PC3 (21.3%)"]
@@ -106,8 +113,22 @@ def build_tables():
     c["stability"] = c["stability_ARI_mean"].map("{:.3f}".format) + " ± " + c["stability_ARI_sd"].map("{:.3f}".format)
     c = c[["model", "clusters", "noise_pct", "silhouette", "davies_bouldin", "calinski_harabasz", "stability",
            "smallest_cluster_pct", "largest_cluster_pct"]]
+    c["model"] = c["model"].replace({"TabClustPFN (auto k)": "TCP (auto k)", "TabClustPFN (k = 4)": "TCP (k = 4)",
+                                     "Hierarchical (Ward)": "Ward"})
     c.columns = ["Model", "Clusters", "Noise %", "Silhouette ↑", "DBI ↓", "CH ↑", "Stability ARI ↑", "Smallest %", "Largest %"]
-    t["table_comparison"] = (c, "Comparative performance of the three final models.", "output/tables/table11_model_comparison.csv")
+    t["table_comparison"] = (c, "Comparative performance of the final models (density models scored on clustered listings only; TCP = TabClustPFN).", "output/tables/table11_model_comparison.csv")
+
+    h = _t("table16_hdbscan_profile.csv")
+    h.columns = ["HDBSCAN group", "Listings", "Median price (US$)", "Median units sold", "Median stock",
+                 "At stock ceiling (%)"]
+    t["table_hdbscan"] = (h, "HDBSCAN groups (min_cluster_size = 30, min_samples = 6) and their share of listings at the "
+                          "censored stock ceiling.", "output/tables/table16_hdbscan_profile.csv")
+
+    tc = _t("table17_tabclustpfn.csv")
+    tc.columns = ["Variant", "Cluster", "Listings", "Median price (US$)", "Median units sold", "Units sold (%)",
+                  "Median stock", "At stock ceiling (%)"]
+    t["table_tabclustpfn"] = (tc, "TabClustPFN clusters with automatic k and with k fixed at 4.",
+                              "output/tables/table17_tabclustpfn.csv")
 
     s = _t("table12_sensitivity_checks.csv")
     s.columns = ["Sensitivity test (K-Means, k = 4)", "ARI"]
@@ -125,13 +146,13 @@ def build_tables():
     t["table_profiles"] = (p, "Business profile of the four K-Means segments.", "output/tables/table13_cluster_profiles.csv")
 
     t["table_ecom"] = (pd.DataFrame([
-        ["Covers every listing", "Yes · 0% noise", "Yes · 0% noise", "No · 8.9% unassigned"],
-        ["Scores new listings instantly", "Yes · nearest centroid", "No · tree must be rebuilt", "Partly · neighbourhood search"],
-        ["Stable between refreshes", "Yes · ARI 0.93", "No · ARI 0.48", "Partly · ARI 0.75"],
-        ["Scales to millions of listings", "Yes · linear", "No · quadratic memory", "Partly · index-dependent"],
-        ["Explainable to managers", "Yes · four typical profiles", "Partly · dendrogram", "No · one dominant group"],
-        ["Recommended role", "Production segmentation", "Structural cross-check", "Anomaly monitor"],
-    ], columns=["E-commerce requirement", "K-Means", "Ward hierarchical", "DBSCAN"]),
+        ["Covers every listing", "Yes · 0% noise", "Yes · 0% noise", "No · 8.9% noise", "No · 47.0% noise", "Yes · 0% noise"],
+        ["Scores new listings instantly", "Yes · nearest centroid", "No · rebuild tree", "Partly", "Partly", "Partly · re-run (~3 s)"],
+        ["Stable between refreshes", "Yes · ARI 0.93", "No · ARI 0.48", "Partly · 0.75", "Partly · 0.71", "Yes · ARI 0.93–0.97"],
+        ["Scales to millions of listings", "Yes · linear", "No · quadratic", "Partly", "Partly", "No · context limit"],
+        ["Explainable to managers", "Yes · four profiles", "Partly", "No · one group", "No · half noise", "Partly · black box"],
+        ["Recommended role", "Production model", "Cross-check", "Anomaly flag", "Data-quality probe", "Check on k"],
+    ], columns=["Requirement", "K-Means", "Ward", "DBSCAN", "HDBSCAN", "TabClustPFN"]),
         "Operational suitability of each model for an e-commerce platform.", None)
     return t
 

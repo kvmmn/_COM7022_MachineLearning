@@ -1,0 +1,7 @@
+variant,cluster,listings,median_price,median_units_sold,share_of_units_sold_pct,median_stock_level,pct_at_stock_ceiling
+auto k = 2,0,410,39.0,19.5,6.9,3.0,0.0
+auto k = 2,1,587,32.98,150.0,93.1,11.0,70.5
+k = 4,0,150,51.99,21.0,0.6,8.0,10.7
+k = 4,1,407,28.93,129.0,38.9,11.0,97.3
+k = 4,2,299,37.99,16.0,3.2,3.0,0.0
+k = 4,3,141,41.0,539.0,57.4,9.0,1.4

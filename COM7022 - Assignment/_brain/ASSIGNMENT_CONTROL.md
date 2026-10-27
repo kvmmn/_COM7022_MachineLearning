@@ -5,7 +5,7 @@
 - Module: COM7022 Machine Learning
 - Assignment: COM7022 Assignment [5444], Portfolio (Task 1 Practical Project + Task 2 Critical Report)
 - Student ID: 25199053
-- Tutor: not named; in-class feedback recorded in `_brain/TUTOR_FEEDBACK.md` (2026-10-27). ROC request pending: student is asking the tutor.
+- Tutor: not named; in-class feedback recorded in `_brain/TUTOR_FEEDBACK.md` (2026-10-27). ROC: tutor confirmed (2026-10-27) it is not required for this clustering project.
 - Deadline: ~2026-11-17 (student, 2026-10-24: "24 days from now"); confirm exact time on iLearn
 - GitHub: https://github.com/kvmmn/_COM7022_MachineLearning (module folder = repo root, as COM7021); GitHub Pages `index.html` = visual draft review
 - Assessed run: Google Colab (local `.venv` mirrors it for verification only)
@@ -104,6 +104,6 @@ Expected result range: 3 to 5 K-Means clusters (e.g. budget slow-sellers, mid-pr
 
 ## Approval
 
-- Student confirmed scope: tutor-feedback structure applied 2026-10-27 (ROC pending)
+- Student confirmed scope: tutor-feedback structure applied 2026-10-27 (ROC not required, confirmed by tutor)
 - Student confirmed structure: pending review of `COM7022_Portfolio_25199053_final.docx`
 - Date: 2026-10-27
