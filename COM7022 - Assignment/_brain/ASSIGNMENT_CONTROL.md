@@ -123,5 +123,6 @@ Expected result range: 3 to 5 K-Means clusters (e.g. budget slow-sellers, mid-pr
 | 3 | Raise the visual design to a much higher graphic level | Pending | Agree direction first (palette, chart types, what "standout" means), prototype 2-3 key figures, then roll out; keep colour-blind-safe and greyscale-readable. |
 | 2 | Review visuals with the student | Pending | Also: the `colab-run-oct27` folder is not in the repo; ask where it is. |
 | 6 | Google Docs version for the tutor | Pending (last) | Replace the static-page-number contents page with a real TOC field or linked headings; test the import; decide whether the 55-screenshot code appendix stays inside or is linked; share with Commenter access. |
+| 8 | Email the tutor the Google Docs link and ask for feedback | Pending (after 6) | Draft only, the student sends it. Mention the student's own extras: HDBSCAN and TabClustPFN (and what the stock-censoring finding shows), the Colab run that reproduced every number, stability and sensitivity testing, the e-commerce model-fit analysis, the print-ready visuals. Needs: tutor name and email, language and tone, the Docs link with Commenter access. |
 
-**Suggested order:** 5, 4, 7, 1, 3 and 2 together, then 6.
+**Suggested order:** 5, 4, 7, 1, 3 and 2 together, then 6, then 8.
