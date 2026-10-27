@@ -211,7 +211,7 @@ Mapping centroids back to business units reveals four distinct commercial segmen
 
 # 6. Executive Summary {#executive-summary}
 
-Machine learning reveals that our 997 fragrance listings fall into **four natural commercial segments**. One quarter of listings — the best-sellers — generate **91% of all units sold**, while almost a third of the catalogue is close to running out of stock. The recommended model, **K-Means with four segments**, produced better segments than four alternatives, including a 2026 AI foundation model, is among the most stable, and is simple enough to run automatically on new listings. Each segment calls for a distinct action: protect, grow, reposition or audit.
+Machine learning reveals that our 997 fragrance listings fall into **four commercially distinct segments**. One quarter of listings — the best-sellers — generate **91% of all units sold**, while almost a third of the catalogue is close to running out of stock. The recommended model, **K-Means with four segments**, produced better segments than four alternatives, including a 2026 AI foundation model, is among the most stable, and is simple enough to run automatically on new listings. Each segment calls for a distinct action: protect, grow, reposition or audit. The evidence shows association, not cause, so each action is framed as a test with a clear stop rule (Section 7.6).
 
 ::: kpis
 
@@ -221,15 +221,41 @@ Machine learning reveals that our 997 fragrance listings fall into **four natura
 
 Unsupervised clustering is the right tool because the company holds no labelled outcomes; the aim is discovery rather than prediction. Three design decisions shaped the outcome. The log transformation stopped a handful of viral listings from dictating the segmentation. The choice of price, sales and stock answers the three questions managers actually ask — *what is it worth, does it sell, will it run out?* Excluding brand and country from the distance calculation prevented segments from degenerating into brand lists. Each decision was tested rather than assumed: the result survives changes of seed and the removal of top sellers.
 
-## 7.2 Comparative Performance: Strengths and Limitations
+## 7.2 The number of segments is a decision, not a discovery
 
-**K-Means** was the strongest model on every measure. Its limitation is that it assumes compact, similarly sized groups and requires the number of segments to be chosen; on a continuous catalogue its boundaries are therefore soft, as the moderate silhouette (0.31) honestly reflects. **Ward hierarchical clustering** offers an intuitive tree of nested groups but proved unstable: its segments changed substantially whenever the sample changed, and it cannot assign new listings without rebuilding the tree. **DBSCAN** excels at irregular shapes and outlier detection, but placed 91% of listings in one group. **HDBSCAN**, the newest technique tested, removes DBSCAN's fragile radius setting, yet still left almost half the catalogue unassigned, and its densest cluster reflected how the platform records stock rather than how listings sell. **TabClustPFN**, a pre-trained foundation model, needs no tuning and is very stable, and its automatic choice of two clusters is a useful sanity check; but it is a black box that depends on externally hosted weights, and when asked for four segments it produced weaker, less commercially meaningful groups than K-Means. Newer is therefore not automatically better: on a small, well-understood table, careful preparation and a transparent model win. These weaknesses are properties of the data as much as of the algorithms, which is itself a valuable insight into how the marketplace is structured.
+The statistics do not agree on how many groups there are. The silhouette and the Calinski-Harabasz index are highest at k = 2 (0.337 and 536.7), Davies-Bouldin is lowest at k = 10 (1.004), and the foundation model, free to choose, picks two clusters. The density methods find no gaps to follow: DBSCAN puts 91% of listings in one cluster and HDBSCAN leaves 47% unassigned. Even K-Means moves a little with its random start (agreement between seeds ARI 0.96). Taken together, this says the catalogue is a continuum of price, sales and stock, and that no natural number of groups exists to be found.
 
-## 7.3 Why K-Means Is the Right Choice for E-Commerce
+From first principles, then, k is not something to estimate but something to choose, and the useful question is how many different actions the business can actually take. Here there are four: protect, grow, reposition, audit. The segmentation is best read as a coordinate system for decisions, not as a map of natural kinds, and its boundaries should be treated as soft.
 
-Technical scores are only half the decision. An e-commerce platform needs a model that covers every listing, can be refreshed frequently, scores new listings instantly, scales to millions of offers and can be explained to managers ([[table_ecom]]). K-Means satisfies all five requirements: each new listing is assigned to its nearest centroid in microseconds, and each centroid reads as a typical price, sales level and stock position. A simple sales ranking would not suffice: it shows who sells most, but not who is premium, cheap yet stagnant, or about to run out.
+## 7.3 What the segmentation adds beyond a sales ranking
+
+Demand is extremely concentrated: the top quarter of listings sells 94% of the units. A one-line rule already finds most of the best-sellers (“sold at least 300 units” recovers 87% of them with 83% precision), so for the head of the catalogue the clustering adds little. Its value lies in the other three quarters, which it separates by stock and price. A small decision tree with eight leaves reproduces the four segments with about 90% cross-validated accuracy ([[table_rules]]): stock thin or deep, then sales high or low, then price high or low.
+
+I read this as a strength. The segments can be run as a handful of readable rules in a spreadsheet or a database query, with K-Means as the way the thresholds were found and shown to hang together. For operations I would deploy the rules; for discovery and re-checking each month I would re-run K-Means.
+
+::: table table_rules
+
+## 7.4 Measurement versus structure
+
+The platform shows “More than 10 available” and stores it as 11, so 41.5% of listings sit on a stock ceiling. Three methods were drawn to it: 89% of HDBSCAN’s main cluster, and 97% of the largest TabClustPFN group at k = 4, are listings at the ceiling. The algorithms found where the platform stops measuring, and part of the strongest structure in this data belongs to the reporting, not to the market.
+
+Inside the K-Means solution this matters in a precise way. The low-stock segment is real, because stock below 11 is recorded exactly (none of its listings is at the ceiling). The other three segments are 54–64% ceiling listings, so for them stock carries almost no information and their separation comes from price and sales. A “Last One” alert can therefore be trusted; a claim about “deep” stock cannot. Collecting true stock counts is the single most valuable data improvement.
+
+## 7.5 Comparing the models fairly
+
+Several headline numbers mislead. HDBSCAN’s silhouette of 0.480 is a selection effect: it is computed on the 53% of listings the method keeps, and scoring only the easiest points flatters any index. DBSCAN’s stability of 0.749 is the stability of a degenerate answer, since a partition with 91% of listings in one cluster is stable by construction. Stability is necessary but not sufficient; Ward’s instability (0.480) is informative precisely because its groups are otherwise sensible.
+
+TabClustPFN needs no tuning and is very stable (0.967 with its own k = 2), but at the four segments the business needs it is clearly weaker (silhouette 0.152 against 0.307). Its agreement with K-Means on the low-stock group is also less independent than it looks. As far as I can tell from its public code, its synthetic training data come from mixture models, so it too expects blob-shaped groups; agreement shows that a blob view of this data is robust, not that blobs are the truth. It is also a black box that depends on externally hosted weights.
+
+An e-commerce platform needs a model that covers every listing, can be refreshed often, scores new listings at once, scales and can be explained to managers ([[table_ecom]]). K-Means meets all five, which is why it is the production model, with the rules from Section 7.3 as its operating form.
 
 ::: table table_ecom
+
+## 7.6 Where the value is, and what would change the recommendation
+
+Units understate who matters. Weighting each listing’s sales by its price gives a rough revenue proxy: best-sellers carry 83.2% of it and the budget segment only 0.8%, but the premium segment carries 9.5% against 3.8% of units, so its commercial weight is 2.5 times what unit counts suggest. An average best-seller listing is worth roughly ninety times an average budget listing on this measure (the proxy is listed price times cumulative units sold, so it is indicative, not accounting revenue).
+
+Each recommendation in Section 8 is therefore a hypothesis, not a finding. The data shows association, and the link between price and sales is weak (Spearman −0.13); it cannot show that promoting budget listings is wasted money. The sound next step is a test: promote a random half of the budget listings for four weeks and keep the spend only if the extra sales pay for it. My recommendations would change if true stock counts split the “deep” segments into healthy and overstocked listings, if listings were seen moving between segments month to month (the segments would then be states, not types), or if that test showed that budget listings do respond.
 
 # 8. Recommendations for Business Managers {#recommendations}
 
@@ -238,17 +264,17 @@ The four segments translate into targeted, measurable interventions ([[fig17_seg
 ::: figure fig17_segment_actions | Share of listings versus share of units sold per segment, with the recommended action.
 ::: recs
 
-Implementation should begin with the best-sellers and the low-stock tail, which protect the most revenue for the least effort. Success should be tracked through stock-outs in Cluster 2, the proportion of Cluster 3 listings restocked or delisted within 30 days, and sales per advertising dollar in Cluster 1. The segmentation should be refreshed monthly, with new listings scored on arrival and DBSCAN noise points reviewed as potential anomalies.
+Implementation should begin with the best-sellers and the low-stock tail, which protect the most revenue for the least effort, and every action should run as a test first (Section 7.6). Success should be tracked through stock-outs in Cluster 2, the proportion of Cluster 3 listings restocked or delisted within 30 days, and sales per advertising dollar in Cluster 1. The segmentation should be refreshed monthly, with new listings scored on arrival and DBSCAN noise points reviewed as potential anomalies.
 
 # 9. Limitations {#limitations}
 
-The platform caps visible stock at ten units, so genuine depth above that level is unknown. The data is a single snapshot of one product family, so segment boundaries may differ in other categories or seasons. Clusters describe association, not causation: a premium price does not itself make a listing slow. Finally, because listings form a continuum, those near a boundary could reasonably belong to either neighbouring segment; the segments should guide prioritisation rather than replace commercial judgement.
+The data is a single snapshot of one product family, so segment boundaries may differ for other categories or seasons. The stock ceiling (Section 7.4) limits what can be said about deep stock, and the revenue proxy is indicative, not accounting revenue. Above all, the segments describe association, not cause, and listings near a boundary could belong to either neighbouring segment: they should guide prioritisation, not replace commercial judgement.
 
 # 10. Conclusion and Future Work {#conclusion}
 
-This project demonstrates that a carefully prepared, well-validated K-Means model can turn an unlabelled and messy catalogue into four clear, actionable segments, and that the commercial value of the catalogue is extraordinarily concentrated. The most important lesson is that **data preparation mattered more than algorithm choice**, even against a state-of-the-art foundation model: recovering values from listing text and correcting the hidden stock ceiling changed the outcome more than any hyperparameter. Equally, the density methods were not wasted effort: DBSCAN and HDBSCAN together provided the clearest evidence that the marketplace is a continuum, and HDBSCAN exposed how stock censoring distorts the data. TabClustPFN added an independent, pre-trained view that agreed on the dominant stock split.
+This project shows that a carefully prepared K-Means model can turn an unlabelled, messy catalogue into four actionable segments, and that the commercial value of the catalogue is extraordinarily concentrated. Three lessons stand out. **Preparation mattered more than algorithm choice**: recovering values from listing text and handling the hidden stock ceiling changed the result more than any hyperparameter, even against a state-of-the-art foundation model. **The number of segments is a business decision, not a statistical result**, because the catalogue is a continuum. And the density methods, though they failed as segmenters, were worth running: together they revealed the continuum and exposed how censoring distorts the data.
 
-Future work would enrich the feature space with revenue, margin and true stock counts (removing the censoring that misled two of the models), incorporate text embeddings of product descriptions, and track segment migration over time to detect listings that are rising or declining. Validating whether segment membership predicts next-quarter sales would convert the descriptive model into a forward-looking decision tool, and a lightweight dashboard would place each listing's segment directly in the hands of category managers.
+Future work would add revenue, margin and true stock counts, use text embeddings of the descriptions, and track segment migration over time. Testing whether segment membership predicts next-quarter sales, and running the promotion tests of Section 7.6, would turn the descriptive model into a decision tool; a small dashboard would put each listing's segment in managers' hands.
 
 <!-- count:none -->
 # References {#references}

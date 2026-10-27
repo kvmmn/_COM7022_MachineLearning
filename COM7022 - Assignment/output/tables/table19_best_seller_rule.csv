@@ -1,0 +1,4 @@
+rule,listings_flagged,precision_pct,recall_pct
+sold >= 200,310,75.2,96.3
+sold >= 300,255,82.7,87.2
+sold >= 500,190,90.0,70.7

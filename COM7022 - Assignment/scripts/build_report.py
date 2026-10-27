@@ -164,6 +164,11 @@ def build_tables():
     t["table_tabclustpfn"] = (tc, "TabClustPFN clusters with automatic k and with k fixed at 4.",
                               "output/tables/table17_tabclustpfn.csv")
 
+    r = _t("table18_segment_rules.csv")
+    r.columns = ["Tree depth", "Rules (leaves)", "Cross-validated accuracy"]
+    t["table_rules"] = (r, "How well a small decision tree reproduces the four K-Means segments from raw price, sales and stock.",
+                        "output/tables/table18_segment_rules.csv")
+
     s = _t("table12_sensitivity_checks.csv")
     s.columns = ["Sensitivity test (K-Means, k = 4)", "ARI"]
     t["table_sensitivity"] = (s, "Robustness of the K-Means solution to analytical choices.",
@@ -171,9 +176,11 @@ def build_tables():
 
     p = _t("table13_cluster_profiles.csv", index_col=0).T
     p = p.loc[["listings", "share_of_listings_pct", "median_price_usd", "median_units_sold", "share_of_units_sold_pct",
-               "median_stock_level", "pct_last_one", "pct_ships_from_us", "top_product_type"]]
+               "share_of_revenue_proxy_pct", "median_stock_level", "pct_at_stock_ceiling", "pct_last_one",
+               "pct_ships_from_us", "top_product_type"]]
     p.insert(0, "Measure", ["Listings", "Share of listings (%)", "Median price (US$)", "Median units sold",
-                            "Share of units sold (%)", "Median stock level", "Listings at 'Last One' (%)",
+                            "Share of units sold (%)", "Share of revenue proxy (%)", "Median stock level",
+                            "Listings at the stock ceiling (%)", "Listings at 'Last One' (%)",
                             "Ships from US (%)", "Dominant product type"])
     p = p[["Measure", 2, 0, 1, 3]]
     p.columns = ["Measure", "C2 Best-Sellers", "C0 Premium", "C1 Budget", "C3 Low-Stock"]
@@ -205,7 +212,7 @@ RECS = [
      "90.7% of units sold from 24.3% of listings.",
      "Automated restock alerts below 10 units, priority search placement and fulfilment SLAs for these sellers."),
     ("c0", "Grow · Cluster 0", "Monetise the premium tier",
-     "Highest prices (median $67.14) with steady, slow demand.",
+     "Highest prices (median $67.14); 3.8% of units but 9.5% of the revenue proxy.",
      "Bundle with best-sellers on product pages and invest in premium content rather than discounting."),
     ("c1", "Reposition · Cluster 1", "Stop subsidising weak demand",
      "Cheapest offers (median $18.10) yet only 1.7% of volume.",
