@@ -11,6 +11,7 @@ notebook (COM7022_Clustering_25199053.ipynb); this file only assembles the deliv
 Order of work: run the notebook (Colab or local), then
     python "COM7022 - Assignment/scripts/build_report.py"
 Optional first argument: shots | docx | html, to run one step only.
+With no argument only docx and html run: the code screenshots are taken by hand (_brain/SCREENSHOT_GUIDE.md).
 """
 import base64
 import html
@@ -55,9 +56,8 @@ BLOB = REPO + "/blob/main/COM7022%20-%20Assignment/"
 REPO_DIR = "COM7022 - Assignment/"
 PAGES = "https://kvmmn.github.io/_COM7022_MachineLearning/"
 TITLE = "Product Segmentation and Performance Clustering for an E-Commerce Fragrance Marketplace"
-SUBTITLE = ("An end-to-end unsupervised machine learning investigation comparing K-Means, Ward hierarchical "
-            "clustering, DBSCAN, HDBSCAN and the TabClustPFN foundation model across 1,000 marketplace listings, "
-            "translated into evidence-based actions for catalogue strategy.")
+SUBTITLE = ("Comparative evaluation of partitioning, hierarchical, and density-based "
+            "clustering across 1,000 unlabelled fragrance listings to guide e-commerce catalogue strategy.")
 
 
 def fmt(v):
@@ -103,8 +103,8 @@ def build_tables():
                              "output/tables/table04_descriptive_statistics_clean.csv")
 
     fs = _t("table05_feature_set_scan.csv")
-    fs.columns = ["Feature set", "Features", "k = 2", "k = 3", "k = 4", "k = 5", "k = 6"]
-    t["table_featuresets"] = (fs, "K-Means silhouette scores for five candidate feature sets (higher is better).",
+    fs.columns = ["Candidate Set", "Feature Composition", "2 Clusters", "3 Clusters", "4 Clusters", "5 Clusters", "6 Clusters"]
+    t["table_featuresets"] = (fs, "Cluster separation and cohesion across five candidate feature subsets (k = 2 to 6).",
                               "output/tables/table05_feature_set_scan.csv")
 
     t["table_techniques"] = (pd.DataFrame([
@@ -116,8 +116,6 @@ def build_tables():
          "Needs density gaps; sensitive to ε and MinPts"],
         ["HDBSCAN", "Hierarchical density: keeps the most persistent clusters across all densities",
          "No ε; handles varying density; membership strengths", "Still needs density gaps; can leave many points as noise"],
-        ["TabClustPFN", "Pre-trained transformer: clusters the table in context, no fitting",
-         "Predicts k itself; no tuning; seconds to run", "Black box; external weights; small-data context limit"],
     ], columns=["Technique", "Principle", "Strengths", "Limitations"]),
         "Comparison of the clustering techniques applied.", None)
 
@@ -126,8 +124,9 @@ def build_tables():
     t["table_pca"] = (pca, "PCA loadings of the standardised features.", "output/tables/table06_pca_loadings.csv")
 
     ks = _t("table07_kmeans_k_scan.csv")
-    ks.columns = ["k", "Inertia", "Silhouette ↑", "Davies-Bouldin ↓", "Calinski-Harabasz ↑", "Smallest cluster"]
-    t["table_kscan"] = (ks, "K-Means model scan for k = 2 to 10.", "output/tables/table07_kmeans_k_scan.csv")
+    ks = ks[["k", "inertia", "smallest_cluster", "silhouette", "davies_bouldin", "calinski_harabasz"]]
+    ks.columns = ["k", "Inertia (WCSS)", "Min Cluster Size", "Silhouette Index (↑)", "Davies-Bouldin (↓)", "Calinski-Harabasz (↑)"]
+    t["table_kscan"] = (ks, "Optimization metrics and cluster validity across configurations k ∈ [2, 10].", "output/tables/table07_kmeans_k_scan.csv")
 
     lk = _t("table08_linkage_comparison.csv")
     lk.columns = ["Linkage", "Cophenetic correlation", "Silhouette (k = 4)", "Cluster sizes"]
@@ -147,22 +146,15 @@ def build_tables():
     c["stability"] = c["stability_ARI_mean"].map("{:.3f}".format) + " ± " + c["stability_ARI_sd"].map("{:.3f}".format)
     c = c[["model", "clusters", "noise_pct", "silhouette", "davies_bouldin", "calinski_harabasz", "stability",
            "smallest_cluster_pct", "largest_cluster_pct"]]
-    c["model"] = c["model"].replace({"TabClustPFN (auto k)": "TCP (auto k)", "TabClustPFN (k = 4)": "TCP (k = 4)",
-                                     "Hierarchical (Ward)": "Ward"})
+    c["model"] = c["model"].replace({"Hierarchical (Ward)": "Ward"})
     c.columns = ["Model", "Clusters", "Noise %", "Silhouette ↑", "DBI ↓", "CH ↑", "Stability ARI ↑", "Smallest %", "Largest %"]
-    t["table_comparison"] = (c, "Comparative performance of the final models (density models scored on clustered listings only; TCP = TabClustPFN).", "output/tables/table11_model_comparison.csv")
+    t["table_comparison"] = (c, "Comparative performance of the final models (density models scored on clustered listings only).", "output/tables/table11_model_comparison.csv")
 
     h = _t("table16_hdbscan_profile.csv")
     h.columns = ["HDBSCAN group", "Listings", "Median price (US$)", "Median units sold", "Median stock",
                  "At stock ceiling (%)"]
     t["table_hdbscan"] = (h, "HDBSCAN groups (min_cluster_size = 30, min_samples = 6) and their share of listings at the "
                           "censored stock ceiling.", "output/tables/table16_hdbscan_profile.csv")
-
-    tc = _t("table17_tabclustpfn.csv")
-    tc.columns = ["Variant", "Cluster", "Listings", "Median price (US$)", "Median units sold", "Units sold (%)",
-                  "Median stock", "At stock ceiling (%)"]
-    t["table_tabclustpfn"] = (tc, "TabClustPFN clusters with automatic k and with k fixed at 4.",
-                              "output/tables/table17_tabclustpfn.csv")
 
     r = _t("table18_segment_rules.csv")
     r.columns = ["Tree depth", "Rules (leaves)", "Cross-validated accuracy"]
@@ -175,6 +167,7 @@ def build_tables():
                               "output/tables/table12_sensitivity_checks.csv")
 
     p = _t("table13_cluster_profiles.csv", index_col=0).T
+    p.loc["top_product_type"] = p.loc["top_product_type"].astype(str).str.replace("Eau de Toilette", "EDT").str.replace("Eau de Parfum", "EDP")
     p = p.loc[["listings", "share_of_listings_pct", "median_price_usd", "median_units_sold", "share_of_units_sold_pct",
                "share_of_revenue_proxy_pct", "median_stock_level", "pct_at_stock_ceiling", "pct_last_one",
                "pct_ships_from_us", "top_product_type"]]
@@ -187,13 +180,13 @@ def build_tables():
     t["table_profiles"] = (p, "Business profile of the four K-Means segments.", "output/tables/table13_cluster_profiles.csv")
 
     t["table_ecom"] = (pd.DataFrame([
-        ["Covers every listing", "Yes · 0% noise", "Yes · 0% noise", "No · 8.9% noise", "No · 47.0% noise", "Yes · 0% noise"],
-        ["Scores new listings instantly", "Yes · nearest centroid", "No · rebuild tree", "Partly", "Partly", "Partly · re-run (~3 s)"],
-        ["Stable between refreshes", "Yes · ARI 0.93", "No · ARI 0.48", "Partly · 0.75", "Partly · 0.75", "Yes · ARI 0.93–0.97"],
-        ["Scales to millions of listings", "Yes · linear", "No · quadratic", "Partly", "Partly", "No · context limit"],
-        ["Explainable to managers", "Yes · four profiles", "Partly", "No · one group", "No · half noise", "Partly · black box"],
-        ["Recommended role", "Production model", "Cross-check", "Anomaly flag", "Data-quality probe", "Check on k"],
-    ], columns=["Requirement", "K-Means", "Ward", "DBSCAN", "HDBSCAN", "TabClustPFN"]),
+        ["Covers every listing", "Yes · 0% noise", "Yes · 0% noise", "No · 8.9% noise", "No · 47.0% noise"],
+        ["Scores new listings instantly", "Yes · nearest centroid", "No · rebuild tree", "Partly", "Partly"],
+        ["Stable between refreshes", "Yes · ARI 0.93", "No · ARI 0.48", "Partly · 0.75", "Partly · 0.75"],
+        ["Scales to millions of listings", "Yes · linear", "No · quadratic", "Partly", "Partly"],
+        ["Explainable to managers", "Yes · four profiles", "Partly", "No · one group", "No · half noise"],
+        ["Recommended role", "Production model", "Cross-check", "Anomaly flag", "Data-quality probe"],
+    ], columns=["Requirement", "K-Means", "Ward", "DBSCAN", "HDBSCAN"]),
         "Operational suitability of each model for an e-commerce platform.", None)
     return t
 
@@ -358,8 +351,7 @@ def load():
 
 
 def appendix_cells():
-    """(section heading, screenshot path, repo path) for every notebook code cell, in order."""
-    import json
+    """(section heading, cell index, first line, screenshot path, repo path) for every notebook code cell."""
     nb = json.loads(NOTEBOOK.read_text())
     out, head, n = [], "Set-up", 0
     for cell in nb["cells"]:
@@ -368,8 +360,31 @@ def appendix_cells():
             head = src.split("\n")[0][3:]
         elif cell["cell_type"] == "code":
             n += 1
-            out.append((head, n, SHOTS / "appendix" / f"cell{n:02d}.png", f"output/screenshots/appendix/cell{n:02d}.png"))
+            first = src.splitlines()[0] if src else ""
+            out.append((head, n, first, SHOTS / "appendix" / f"cell{n:02d}.png",
+                        f"output/screenshots/appendix/cell{n:02d}.png"))
     return out
+
+
+def notebook_asset_map():
+    """Map every generated figure, table and body code-shot key to (cell_num, first_line)."""
+    nb = json.loads(NOTEBOOK.read_text())
+    fig_map, tbl_map, shot_map, n = {}, {}, {}, 0
+    stem_by_prefix = {first_line: stem for first_line, (stem, _) in CELLS.items()}
+    for cell in nb["cells"]:
+        if cell["cell_type"] != "code":
+            continue
+        n += 1
+        src = "".join(cell["source"]).lstrip()
+        first = src.splitlines()[0] if src else ""
+        for m in re.finditer(r'save_figure\([^,]+,\s*"([^"]+)"', src):
+            fig_map[m.group(1)] = (n, first)
+        for m in re.finditer(r'save_table\([^,]+,\s*"([^"]+)"', src):
+            tbl_map[m.group(1)] = (n, first)
+        for prefix, stem in stem_by_prefix.items():
+            if src.startswith(prefix):
+                shot_map[stem] = (n, first)
+    return fig_map, tbl_map, shot_map
 
 
 # ============================================================================================================
@@ -377,8 +392,10 @@ def appendix_cells():
 # ============================================================================================================
 
 SHOT_DPI, SHOT_TEXT_WIDTH = 300, 6.6                 # code screenshots are drawn at the report's text width
-FONT_REG = "/usr/share/fonts/truetype/crosextra/Carlito-Regular.ttf"
-FONT_BOLD = "/usr/share/fonts/truetype/crosextra/Carlito-Bold.ttf"
+FONT_REG = next((p for p in ("/usr/share/fonts/truetype/crosextra/Carlito-Regular.ttf",
+                               "/System/Library/Fonts/Supplemental/Arial.ttf") if Path(p).exists()), None)
+FONT_BOLD = next((p for p in ("/usr/share/fonts/truetype/crosextra/Carlito-Bold.ttf",
+                                "/System/Library/Fonts/Supplemental/Arial Bold.ttf") if Path(p).exists()), None)
 SHOT = {"midnight": "#002B49", "soft": "#1A4A6B", "tiffany": "#66C9BA", "paper": "#F7FAFB", "grid": "#D5DEE3",
         "mute": "#5A6B75"}
 
@@ -420,7 +437,8 @@ class ArdenCode(Style):
 
 def render_code(src, header, out):
     """Code at print size: 28 px mono at 300 dpi is about 6.7 pt, the same scale for every screenshot."""
-    fmt = ImageFormatter(font_name="DejaVu Sans Mono", font_size=28, line_numbers=True, style=ArdenCode,
+    mono_font = "DejaVu Sans Mono" if sys.platform != "darwin" else "Menlo"
+    fmt = ImageFormatter(font_name=mono_font, font_size=28, line_numbers=True, style=ArdenCode,
                          line_number_bg="#EDF1F4", line_number_fg="#8A9AA5", line_number_pad=10,
                          image_pad=22, line_pad=7)
     tmp = out.with_suffix(".tmp.png")
@@ -597,9 +615,9 @@ def setup(doc):
     st = doc.styles["Normal"]
     st.font.name, st.font.size, st.font.color.rgb = FONT, Pt(10.5), INK
     st.element.rPr.rFonts.set(qn("w:eastAsia"), FONT)
-    st.paragraph_format.space_after, st.paragraph_format.line_spacing = Pt(6), 1.15
-    for name, size, color, before, after in (("Heading 1", 18, MIDNIGHT, 4, 8), ("Heading 2", 12.5, MIDNIGHT_SOFT, 12, 4),
-                                             ("Heading 3", 11, MIDNIGHT_SOFT, 8, 3)):
+    st.paragraph_format.space_after, st.paragraph_format.line_spacing = Pt(5.5), 1.15
+    for name, size, color, before, after in (("Heading 1", 16.5, MIDNIGHT, 14, 6), ("Heading 2", 12, MIDNIGHT_SOFT, 10, 3.5),
+                                             ("Heading 3", 10.5, TEAL, 8, 2.5)):
         h = doc.styles[name]
         h.font.name, h.font.size, h.font.bold, h.font.color.rgb = FONT, Pt(size), True, color
         rf = h.element.rPr.rFonts
@@ -620,7 +638,6 @@ def header_footer(section):
     hp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     run(hp, "COM7022 Machine Learning  ·  Product Segmentation Portfolio  ·  ", 8, color=MUTE)
     run(hp, f"Student ID {STUDENT_ID}", 8, bold=True, color=MIDNIGHT)
-    para_border_bottom(hp, HEX["tiffany"], 6, 4)
     fp = section.footer.paragraphs[0]
     fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run(fp, "Page ", 8.5, color=MUTE)
@@ -668,48 +685,106 @@ def kpi_strip(doc):
     spacer(doc, 4)
 
 
-def source_line(p, rel):
-    run(p, "Source: ", 8, bold=True, color=TEAL)
-    hyperlink(p, repo_url(rel), REPO_DIR + rel, 8)
+def add_bookmark(p, bm_id, bm_name):
+    start = OxmlElement("w:bookmarkStart")
+    start.set(qn("w:id"), str(bm_id)); start.set(qn("w:name"), bm_name)
+    end = OxmlElement("w:bookmarkEnd")
+    end.set(qn("w:id"), str(bm_id))
+    p._p.insert(0, start)
+    p._p.append(end)
 
 
-def caption(doc, label, text, rel=None):
+def pageref_field(p, bm_name, size=9.5, bold=False, color=MIDNIGHT):
+    for kind, text in (("begin", None), (None, f" PAGEREF {bm_name} \\h "), ("separate", None), ("end", None)):
+        r = p.add_run(); r.font.size = Pt(size); r.bold = bold; r.font.color.rgb = color
+        if kind:
+            el = OxmlElement("w:fldChar"); el.set(qn("w:fldCharType"), kind)
+        else:
+            el = OxmlElement("w:instrText"); el.set(qn("xml:space"), "preserve"); el.text = text
+        r._r.append(el)
+
+
+def source_line(p, rel, cell_num=None):
+    if rel:
+        run(p, "Source: ", 8, bold=True, color=TEAL)
+        hyperlink(p, repo_url(rel), REPO_DIR + rel, 8)
+    if cell_num is not None:
+        if rel:
+            run(p, "   |   ", 8, color=MUTE)
+        run(p, "Code: ", 8, bold=True, color=TEAL)
+        hyperlink(p, repo_url("COM7022_Clustering_25199053.ipynb"),
+                  f"COM7022_Clustering_25199053.ipynb (Cell {cell_num})", 8)
+
+
+def caption(doc, label, text, rel=None, cell_num=None):
     p = doc.add_paragraph()
-    p.paragraph_format.space_before, p.paragraph_format.space_after = Pt(3), Pt(12)
+    p.paragraph_format.space_before, p.paragraph_format.space_after = Pt(3), Pt(10)
     run(p, f"{label}. ", 9, bold=True, color=MIDNIGHT)
     docx_inline(p, text, 9, MUTE)
-    if rel:
+    if rel or cell_num is not None:
         p.add_run("\n")
-        source_line(p, rel)
+        source_line(p, rel, cell_num)
 
 
-def figure(doc, path, label, text, rel, max_height=22.0):
-    """Insert at the image's native print size (all visuals are drawn at 300 dpi for a 16.8 cm text width),
-    so type in every figure and screenshot appears at the size it was designed for."""
+def figure(doc, path, label, text, rel, cell_num=None, max_height=22.0):
+    """Insert at the image's native print size (all visuals are drawn at 300 dpi for a 16.8 cm text width)."""
     w, h = Image.open(path).size
     width = min(16.8, w / 300 * 2.54, max_height * w / h)
     p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_before, p.paragraph_format.space_after = Pt(6), Pt(0)
     p.paragraph_format.keep_with_next = True
     p.add_run().add_picture(str(path), width=Cm(width))
-    caption(doc, label, text, rel)
+    caption(doc, label, text, rel, cell_num)
 
 
-def data_table(doc, df, label, cap, rel, hl=None, font=8.5):
+def shot_placeholder(doc, label, text, cell_num, first_line, rel):
+    """Clean visual placeholder box for real Google Colab screenshots to be pasted manually."""
+    t = doc.add_table(rows=1, cols=1); t.alignment = WD_TABLE_ALIGNMENT.CENTER; table_no_borders(t)
+    c = t.cell(0, 0); c.width = Cm(16.8)
+    shade(c, HEX["paper"])
+    b = OxmlElement("w:tcBorders")
+    for edge, sz, val, col in (("top", "8", "dashed", HEX["deep"]),
+                               ("right", "8", "dashed", HEX["deep"]),
+                               ("bottom", "8", "dashed", HEX["deep"]),
+                               ("left", "36", "single", HEX["midnight"])):
+        el = OxmlElement(f"w:{edge}")
+        el.set(qn("w:val"), val); el.set(qn("w:sz"), sz); el.set(qn("w:color"), col)
+        b.append(el)
+    c._tc.get_or_add_tcPr().append(b)
+    cell_margins(c, 130, 130, 200, 180)
+    p = c.paragraphs[0]; p.paragraph_format.space_after = Pt(2); p.paragraph_format.keep_with_next = True
+    run(p, "[PLACEHOLDER · INSERT GOOGLE COLAB SCREENSHOT]", 8, bold=True, color=TEAL)
+    p2 = c.add_paragraph(); p2.paragraph_format.space_after = Pt(2); p2.paragraph_format.keep_with_next = True
+    run(p2, f"{label} — {text}", 9.5, bold=True, color=MIDNIGHT)
+    p3 = c.add_paragraph(); p3.paragraph_format.space_after = Pt(2); p3.paragraph_format.keep_with_next = True
+    cell_label = f"Code Cell {cell_num}" if cell_num else "Notebook Cell"
+    run(p3, f"{cell_label}: {first_line[:95]}", 8.5, color=MIDNIGHT_SOFT, font="Consolas")
+    p4 = c.add_paragraph(); p4.paragraph_format.space_after = Pt(0)
+    run(p4, f"Capture executed cell + output in Google Colab and paste here (target file: {REPO_DIR}{rel}).",
+        8, italic=True, color=MUTE)
+    keep_rows_together(t)
+    c.paragraphs[-1].paragraph_format.keep_with_next = True
+    caption(doc, label, text, rel, cell_num)
+
+
+def data_table(doc, df, label, cap, rel, hl=None, cell_num=None, font=None):
+    rows, cols = df.shape
+    if font is None:
+        font = 8.0 if cols >= 7 else 8.5
     pc = doc.add_paragraph(); pc.paragraph_format.keep_with_next = True
     pc.paragraph_format.space_before, pc.paragraph_format.space_after = Pt(6), Pt(3)
     run(pc, f"{label}. ", 9, bold=True, color=MIDNIGHT); docx_inline(pc, cap, 9, MIDNIGHT)
-    rows, cols = df.shape
     t = doc.add_table(rows=rows + 1, cols=cols)
     t.alignment = WD_TABLE_ALIGNMENT.CENTER
     table_no_borders(t)
+    t.rows[0]._tr.get_or_add_trPr().append(OxmlElement("w:tblHeader"))
     for j, col in enumerate(df.columns):
-        c = t.cell(0, j); shade(c, HEX["midnight"]); cell_margins(c, 70, 70, 100, 80)
+        c = t.cell(0, j); shade(c, HEX["midnight"]); cell_margins(c, 65, 65, 85, 70)
         p = c.paragraphs[0]; p.paragraph_format.space_after = Pt(0)
         run(p, str(col), font, bold=True, color=WHITE)
     for i in range(rows):
         for j in range(cols):
-            c = t.cell(i + 1, j); cell_margins(c, 55, 55, 100, 80)
+            c = t.cell(i + 1, j); cell_margins(c, 50, 50, 85, 70)
             cell_borders(c, bottom=(4, HEX["grid"]), left=(24, HEX["deep"]) if (i == hl and j == 0) else None)
             if i == hl:
                 shade(c, HEX["mist"])
@@ -723,8 +798,8 @@ def data_table(doc, df, label, cap, rel, hl=None, font=8.5):
         for c in row.cells:
             c.paragraphs[0].paragraph_format.keep_with_next = True
     p = doc.add_paragraph(); p.paragraph_format.space_before, p.paragraph_format.space_after = Pt(2), Pt(10)
-    if rel:
-        source_line(p, rel)
+    if rel or cell_num is not None:
+        source_line(p, rel, cell_num)
 
 
 def callout(doc, title, text):
@@ -779,8 +854,7 @@ def part_banner(doc, tag, title, words):
 
 
 def h1(doc, text):
-    p = doc.add_heading(text, level=1)
-    para_border_bottom(p, HEX["tiffany"], 12, 4)
+    return doc.add_heading(text, level=1)
 
 
 # ----------------------------------------------------------------------------- cover and contents
@@ -794,7 +868,7 @@ def cover(doc, wc):
     meta = [("Student ID", STUDENT_ID), ("Module", "COM7022 Machine Learning · Assignment [5444]"),
             ("Assessment", "Portfolio · Task 1 Practical Project · Task 2 Critical Report"),
             ("Word count", f"{wc['total']:,} words of body text (Task 1: {wc['task1_total']:,} · Task 2: {wc['task2']:,}); "
-                           "captions, tables, figures, code screenshots, references and appendix excluded"),
+                           "captions, tables, figures, code placeholders, references and appendix excluded"),
             ("Dataset", "Sales-[5444].csv · 1,000 listings × 10 attributes"),
             ("Repository", REPO), ("Review portal", PAGES)]
     t = doc.add_table(rows=len(meta), cols=2); table_no_borders(t); t.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -812,7 +886,7 @@ def cover(doc, wc):
     spacer(doc, 14)
     kpi_strip(doc)
     p = doc.add_paragraph()
-    run(p, "Every figure, table and code screenshot carries a caption that names and links its exact file in the GitHub repository.",
+    run(p, "Every figure and table links to its repository file and generating notebook cell; code sections carry placeholders for live Google Colab screenshots.",
         8.5, italic=True, color=MUTE)
 
 
@@ -820,12 +894,14 @@ def contents(doc, blocks, pages):
     page_break(doc)
     h1(doc, "Contents")
     t = doc.add_table(rows=0, cols=2); table_no_borders(t); t.alignment = WD_TABLE_ALIGNMENT.CENTER
+    bm_idx = 0
     for b in blocks:
         if b["type"] == "part":
             cells = t.add_row().cells
             p = cells[0].paragraphs[0]; p.paragraph_format.space_before = Pt(10)
             run(p, f"{b['tag']}  ·  {b['title']}".upper(), 8.5, bold=True, color=TIFFANY_DEEP)
         elif b["type"] in ("h1", "h2"):
+            bm_idx += 1
             lvl1 = b["type"] == "h1"
             cells = t.add_row().cells
             p = cells[0].paragraphs[0]
@@ -834,7 +910,10 @@ def contents(doc, blocks, pages):
             run(p, b["text"], 10.5 if lvl1 else 9.5, bold=lvl1, color=MIDNIGHT if lvl1 else INK)
             q = cells[1].paragraphs[0]; q.alignment = WD_ALIGN_PARAGRAPH.RIGHT
             q.paragraph_format.space_before = Pt(5 if lvl1 else 0)
-            run(q, str(pages.get(b["text"], "")), 10 if lvl1 else 9, bold=lvl1, color=MIDNIGHT)
+            if pages.get(b["text"]):
+                run(q, str(pages[b["text"]]), 10 if lvl1 else 9, bold=lvl1, color=MIDNIGHT)
+            else:
+                pageref_field(q, f"_sec_{bm_idx}", 10 if lvl1 else 9, bold=lvl1, color=MIDNIGHT)
             if lvl1:
                 for c in cells:
                     cell_borders(c, bottom=(4, HEX["grid"]))
@@ -848,28 +927,32 @@ def contents(doc, blocks, pages):
 # ----------------------------------------------------------------------------- build
 def build_docx(pages):
     blocks, labels, tables, wc = load()
+    fig_map, tbl_map, shot_map = notebook_asset_map()
     doc = Document()
     setup(doc)
     header_footer(doc.sections[0])
     cover(doc, wc)
     contents(doc, blocks, pages)
-    after_part, eq_n, section = False, 0, ""
+    after_part, eq_n, section, bm_idx = False, 0, "", 0
     for b in blocks:
         t = b["type"]
         if t == "part":
             part_banner(doc, b["tag"], b["title"], wc["task1_total"] if "1" in b["tag"] else wc["task2"])
             after_part = True
         elif t == "h1":
-            # sections flow on; only the back matter starts on a fresh page (parts have their own break)
             if b["text"].startswith(("References", "Appendix")):
                 page_break(doc)
             elif not after_part:
                 spacer(doc, 4)
             after_part = False
             section = b["text"]
-            h1(doc, b["text"])
-        elif t in ("h2", "h3"):
-            doc.add_heading(b["text"], level=int(t[1]))
+            bm_idx += 1
+            add_bookmark(h1(doc, b["text"]), bm_idx, f"_sec_{bm_idx}")
+        elif t == "h2":
+            bm_idx += 1
+            add_bookmark(doc.add_heading(b["text"], level=2), bm_idx, f"_sec_{bm_idx}")
+        elif t == "h3":
+            doc.add_heading(b["text"], level=3)
         elif t == "para":
             docx_inline(doc.add_paragraph(), b["text"])
         elif t == "bullets" and section == "References":
@@ -879,13 +962,18 @@ def build_docx(pages):
         elif t == "bullets":
             for x in b["items"]:
                 docx_inline(doc.add_paragraph(style="List Bullet"), x)
-        elif t in ("figure", "shot"):
+        elif t == "figure":
             path, rel = figure_path(b)
-            text = ("Code screenshot: " + b["caption"]) if t == "shot" else b["caption"]
-            figure(doc, path, b["label"], text, rel)
+            cell_num = fig_map.get(path.name, (None, ""))[0]
+            figure(doc, path, b["label"], b["caption"], rel, cell_num=cell_num)
+        elif t == "shot":
+            _, rel = figure_path(b)
+            cell_num, first_line = shot_map.get(b["key"], (None, ""))
+            shot_placeholder(doc, b["label"], b["caption"], cell_num, first_line, rel)
         elif t == "table":
             df, cap, rel = tables[b["key"]]
-            data_table(doc, df, b["label"], cap, rel, HIGHLIGHT.get(b["key"]))
+            cell_num = tbl_map.get(Path(rel).name, (None, ""))[0] if rel else None
+            data_table(doc, df, b["label"], cap, rel, HIGHLIGHT.get(b["key"]), cell_num=cell_num)
         elif t == "callout":
             callout(doc, b["title"], b["text"])
         elif t == "equation":
@@ -897,23 +985,31 @@ def build_docx(pages):
             kpi_strip(doc)
         elif t == "appendix":
             current = None
-            for head, n, path, rel in appendix_cells():
+            for head, n, first_line, path, rel in appendix_cells():
                 if head != current:
                     current = head
                     doc.add_heading(f"A · {head}", level=3)
-                figure(doc, path, f"Code A{n}", f"Notebook code cell {n}", rel)
+                shot_placeholder(doc, f"Code A{n}", f"Notebook code cell {n}", n, first_line, rel)
         # 'explorer' is interactive and portal-only; the same numbers are in the cluster profile table
     doc.save(DOCX)
     return blocks, wc
 
 
 def to_pdf():
-    subprocess.run(["soffice", "--headless", "--convert-to", "pdf", "--outdir", str(DOCX.parent), str(DOCX)],
+    import shutil
+    soffice = shutil.which("soffice") or ("/Applications/LibreOffice.app/Contents/MacOS/soffice" if Path("/Applications/LibreOffice.app/Contents/MacOS/soffice").exists() else None)
+    if not soffice:
+        return False
+    subprocess.run([str(soffice), "--headless", "--convert-to", "pdf", "--outdir", str(DOCX.parent), str(DOCX)],
                    check=True, capture_output=True)
+    return True
 
 
 def heading_pages(blocks):
     """PDF page of every h1/h2 heading, searched in order after the contents page."""
+    import shutil
+    if not shutil.which("pdftotext"):
+        return {}
     text = subprocess.run(["pdftotext", "-layout", str(PDF), "-"], capture_output=True, text=True, check=True).stdout
     pages = text.split("\f")
     norm = lambda s: re.sub(r"\s+", " ", s).strip().lower()
@@ -931,15 +1027,18 @@ def heading_pages(blocks):
 
 def build_docx_and_pdf():
     blocks, wc = build_docx({})
-    to_pdf()
-    pages = heading_pages(blocks)          # second pass writes real page numbers into the contents page
-    build_docx(pages)
-    to_pdf()
-    final = heading_pages(blocks)
-    if final != pages:
-        build_docx(final); to_pdf()
+    if to_pdf():
+        pages = heading_pages(blocks)          # second pass writes real page numbers into the contents page
+        if pages:
+            build_docx(pages)
+            to_pdf()
+            final = heading_pages(blocks)
+            if final != pages:
+                build_docx(final); to_pdf()
+        print("saved", DOCX.name, "and", PDF.name)
+    else:
+        print("saved", DOCX.name, "(PDF conversion skipped: soffice not found)")
     print("word count:", wc)
-    print("saved", DOCX.name, "and", PDF.name)
 
 
 # ============================================================================================================
@@ -1463,10 +1562,20 @@ EXTRA_CSS = r"""
         .content-card ul.styled li::before { content: ""; position: absolute; left: 4px; top: 10px; width: 8px; height: 8px;
             border-radius: 2px; background: var(--tiffany-deep); }
         .figure-box img { cursor: zoom-in; }
-        .src-chip { display: inline-block; margin-top: 6px; font-size: 11.5px; font-family: var(--font-mono);
+        .src-chip { display: inline-block; margin-top: 6px; margin-right: 6px; font-size: 11.5px; font-family: var(--font-mono);
             color: var(--teal); background: var(--mist); border: 1px solid #CDEBE5; padding: 2px 8px; border-radius: 4px;
             text-decoration: none; word-break: break-all; }
         .src-chip:hover { background: #d8f0eb; }
+        .code-chip { display: inline-block; margin-top: 6px; font-size: 11.5px; font-family: var(--font-mono);
+            color: var(--midnight); background: #EDF2F7; border: 1px solid #CBD5E1; padding: 2px 8px; border-radius: 4px;
+            text-decoration: none; word-break: break-all; }
+        .code-chip:hover { background: #E2E8F0; }
+        .shot-placeholder { margin: 14px 0; padding: 14px 18px; border: 1.5px dashed #8FA8BE; border-radius: 8px;
+            background: #F6F9FC; }
+        .shot-placeholder .ph-tag { font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+            color: var(--midnight); letter-spacing: .4px; margin-bottom: 4px; }
+        .shot-placeholder .ph-title { font-size: 13.5px; font-weight: 600; color: #1E2D3A; margin-bottom: 4px; }
+        .shot-placeholder .ph-meta { font-size: 12px; color: var(--mute); font-family: var(--font-mono); }
         .table-caption strong { color: var(--midnight); }
         .arden-table td:first-child { font-weight: 600; color: var(--midnight); }
         details.code-shot { margin: 14px 0; border: 1px solid var(--grid); border-radius: 8px; background: #fff; overflow: hidden; }
@@ -1529,22 +1638,42 @@ def src_chip(rel):
             f"&#128193; {html.escape(REPO_DIR + rel)}</a>")
 
 
-def render_table(df, label, caption, rel, hl=None):
+def code_chip(cell_num):
+    if cell_num is None:
+        return ""
+    nb_rel = "COM7022_Clustering_25199053.ipynb"
+    return (f'<a class="code-chip" href="{repo_url(nb_rel)}" target="_blank" rel="noopener">'
+            f"&lt;/&gt; Code: {nb_rel} (Cell {cell_num})</a>")
+
+
+def render_table(df, label, caption, rel, hl=None, cell_num=None):
     head = "".join(f"<th>{html.escape(str(c))}</th>" for c in df.columns)
     rows = "".join(f'<tr{" class=hl" if i == hl else ""}>' + "".join(f"<td>{html.escape(fmt(v))}</td>" for v in r)
                    + "</tr>" for i, r in enumerate(df.astype(object).values))
-    chip = f"<div>{src_chip(rel)}</div>" if rel else ""
+    chips = []
+    if rel:
+        chips.append(src_chip(rel))
+    if cell_num is not None:
+        chips.append(code_chip(cell_num))
+    chip = f'<div>{"".join(chips)}</div>' if chips else ""
     return (f'<div class="table-container"><div class="table-caption"><strong>{label}.</strong> {html.escape(caption)}</div>'
             f'<table class="arden-table"><thead><tr>{head}</tr></thead><tbody>{rows}</tbody></table>{chip}</div>')
 
 
-def render_figure(b):
+def render_figure(b, fig_map=None, shot_map=None):
     path, rel = figure_path(b)
-    img = f'<img src="{b64(path)}" alt="{html.escape(b["caption"])}" loading="lazy">'
-    cap = f'<div class="figure-caption"><strong>{b["label"]}.</strong> {html_inline(b["caption"])}<br>{src_chip(rel)}</div>'
     if b["type"] == "shot":
-        return (f'<details class="code-shot"><summary><span class="ico">&lt;/&gt;</span>{b["label"]} · Code: '
-                f'{html_inline(b["caption"])}<span class="chev">&#9656;</span></summary><div class="inner">{img}{cap}</div></details>')
+        cell_num, first_line = (shot_map or {}).get(b["key"], (None, ""))
+        meta = f"Source: {rel}" + (f" · {first_line}" if first_line else "")
+        return (f'<div class="shot-placeholder">'
+                f'<div class="ph-tag">[PLACEHOLDER · INSERT GOOGLE COLAB SCREENSHOT]</div>'
+                f'<div class="ph-title"><strong>{b["label"]}.</strong> {html_inline(b["caption"])}</div>'
+                f'<div class="ph-meta">{html.escape(meta)}</div>'
+                f'{src_chip(rel)}{code_chip(cell_num)}</div>')
+    cell_num = (fig_map or {}).get(path.name, (None,))[0]
+    img = f'<img src="{b64(path)}" alt="{html.escape(b["caption"])}" loading="lazy">'
+    cap = (f'<div class="figure-caption"><strong>{b["label"]}.</strong> {html_inline(b["caption"])}<br>'
+           f'{src_chip(rel)}{code_chip(cell_num)}</div>')
     return f'<div class="figure-box">{img}{cap}</div>'
 
 
@@ -1601,20 +1730,23 @@ def kpis():
 
 def appendix(prefix):
     groups, out = {}, []
-    for head, n, path, rel in appendix_cells():
-        groups.setdefault(head, []).append((n, rel))
+    for head, n, first_line, path, rel in appendix_cells():
+        groups.setdefault(head, []).append((n, first_line, rel))
     for head, cells in groups.items():
         out.append(f'<div class="code-group-label">{html.escape(head)}</div>')
-        for n, rel in cells:
-            out.append(f'<details class="code-shot"><summary><span class="ico">cell {n:02d}</span>Notebook code cell {n}'
-                       f'<span class="chev">&#9656;</span></summary><div class="inner">'
-                       f'<img src="{prefix}{rel}" alt="Notebook code cell {n}" loading="lazy">'
-                       f'<div class="figure-caption">{src_chip(rel)}</div></div></details>')
+        for n, first_line, rel in cells:
+            meta = f"Screenshot file: {rel}" + (f" · {first_line}" if first_line else "")
+            out.append(f'<div class="shot-placeholder">'
+                       f'<div class="ph-tag">[PLACEHOLDER · INSERT GOOGLE COLAB SCREENSHOT — CELL {n:02d}]</div>'
+                       f'<div class="ph-title"><strong>Appendix A.{n:02d}.</strong> Notebook code cell {n}</div>'
+                       f'<div class="ph-meta">{html.escape(meta)}</div>'
+                       f'{code_chip(n)}</div>')
     return '<div class="appendix-grid">' + "".join(out) + "</div>"
 
 
 def build_html(prefix):
     blocks, labels, tables, wc = load()
+    fig_map, tbl_map, shot_map = notebook_asset_map()
     parts, open_card, section = [], False, ""
 
     def close():
@@ -1647,10 +1779,11 @@ def build_html(prefix):
         elif t == "bullets":
             parts.append('<ul class="styled">' + "".join(f"<li>{html_inline(x)}</li>" for x in b["items"]) + "</ul>")
         elif t in ("figure", "shot"):
-            parts.append(render_figure(b))
+            parts.append(render_figure(b, fig_map=fig_map, shot_map=shot_map))
         elif t == "table":
             df, cap, rel = tables[b["key"]]
-            parts.append(render_table(df, b["label"], cap, rel, HIGHLIGHT.get(b["key"])))
+            tbl_cell = tbl_map.get(Path(rel).name, (None,))[0] if rel else None
+            parts.append(render_table(df, b["label"], cap, rel, HIGHLIGHT.get(b["key"]), cell_num=tbl_cell))
         elif t == "callout":
             parts.append(f'<div class="callout-box"><strong>{html_inline(b["title"])}:</strong> {html_inline(b["text"])}</div>')
         elif t == "equation":
@@ -1738,7 +1871,9 @@ def build_html_portal():
 
 def main():
     steps = {"shots": build_code_screenshots, "docx": build_docx_and_pdf, "html": build_html_portal}
-    chosen = sys.argv[1:] or list(steps)
+    # Code screenshots are now taken by hand from the author's own notebook run (see _brain/SCREENSHOT_GUIDE.md),
+    # so the default run must NOT regenerate them. Pass "shots" explicitly to overwrite them with rendered images.
+    chosen = sys.argv[1:] or ["docx", "html"]
     for name in chosen:
         steps[name]()
 

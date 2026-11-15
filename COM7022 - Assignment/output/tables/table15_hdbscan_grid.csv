@@ -1,6 +1,6 @@
 min_cluster_size,min_samples,clusters,noise_pct,silhouette_clustered
 10,3,2,6.2,0.134
-10,6,7,49.0,0.131
+10,6,7,48.9,0.137
 10,10,2,52.3,0.511
 20,3,5,39.7,0.17
 20,6,2,47.0,0.48

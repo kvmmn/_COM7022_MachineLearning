@@ -4,31 +4,31 @@
      ::: kpis | ::: recs | ::: explorer | ::: appendix | $$latex$$ | [[key]] = cross-reference | <!-- count:x --> = word-count bucket -->
 
 <!-- count:intro -->
-# 1. Introduction {#introduction}
+# 1. Project Background {#introduction}
 
-## 1.1 Business Context
+## 1.1 Commercial Context
 
-This portfolio is written as a newly appointed Machine Learning Analyst at a rapidly growing multi-seller e-commerce marketplace. Independent merchants list competing offers for the same products, so the catalogue grows faster than any team can curate by hand. Decisions on which listings to promote, replenish or retire now require a scalable, data-driven view.
+This portfolio is written as a Machine Learning Analyst at a fast-growing multi-seller e-commerce marketplace. Independent merchants list competing offers for the same fragrances, so catalogue growth outpaces manual curation. Management needs a scalable, data-driven view to decide which listings to promote, replenish or retire.
 
-## 1.2 The Dataset
+## 1.2 Marketplace Data Overview
 
-The analysis uses the company extract `Sales-[5444].csv`: **1,000 listings described by 10 attributes** covering product identity (`Item_Name`, `details`, `Catatory`), pricing (`price`, `priceWithCurrency`), availability and traction (`available`, `text`, `sold`), maintenance history (`lastUpdated`) and dispatch origin (`itemLocation`). The catalogue is a men's fragrance category, dominated by US-based sellers (909 listings) with a smaller cross-border segment led by Hong Kong (52). Critically, each row is a **seller listing rather than a unique product**: the same fragrance can appear several times at different prices and stock positions, so the resulting segments describe commercial offers, not manufacturers.
+The analysis uses `Sales-[5444].csv`: **1,000 listings across 10 attributes** covering identity (`Item_Name`, `details`, `Catatory`), pricing (`price`, `priceWithCurrency`), availability and sales (`available`, `text`, `sold`), maintenance history (`lastUpdated`) and origin (`itemLocation`). The catalogue covers men's fragrances, led by US-based sellers (**912 of 1,000 raw listings; 909 of 997 cleaned**) alongside cross-border offers led by Hong Kong (52). Each row is a **seller listing rather than a unique product**: the same fragrance appears across multiple offers with different prices and stock levels, so segments describe commercial offers rather than brands.
 
-## 1.3 Problem Statement
+## 1.3 Core Problem Formulation
 
-Three obstacles prevent the company from managing this catalogue strategically. First, **scale**: manual review cannot keep pace with listing growth. Second, **data quality**: prices and sales are partly stored as free text, category labels are inconsistent and the platform censors stock above ten units. Third, **the absence of labels**: no field states whether a listing is a best-seller, a premium niche item or an inventory risk, which rules out supervised learning. The business question is therefore one of *discovery*: what natural commercial groups exist in the catalogue, and how should each be managed?
+Three barriers prevent manual catalogue management. First, **scale**: listing growth outpaces manual review. Second, **data quality**: prices and sales appear inside free text, category labels are fragmented, and stock above ten units is censored. Third, **no ground-truth labels**: no field identifies best-sellers, premium niche offers or inventory risks, ruling out supervised learning. The task is therefore unsupervised discovery: what commercial segments exist, and how should each be managed?
 
-## 1.4 Project Objectives
+## 1.4 Key Investigation Goals
 
-- **O1 — Data readiness:** audit, clean and transform the dataset with every intervention evidenced and reproducible.
-- **O2 — Segmentation:** apply K-Means, Hierarchical (agglomerative) clustering, DBSCAN, the more recent HDBSCAN and the TabClustPFN foundation model to group listings by product characteristics and sales performance.
-- **O3 — Rigorous evaluation:** compare models with complementary internal, stability and sensitivity measures rather than a single score.
-- **O4 — Model justification:** select the model that is technically strongest *and* operationally suited to e-commerce.
-- **O5 — Business translation:** convert segments into evidence-based actions for non-technical decision-makers.
+- **O1 — Data readiness:** audit, clean and transform the extract reproducibly.
+- **O2 — Segmentation:** apply K-Means, Hierarchical (agglomerative) clustering, DBSCAN and HDBSCAN to group listings by characteristics and sales performance.
+- **O3 — Rigorous evaluation:** compare models using complementary internal, stability and sensitivity metrics.
+- **O4 — Model selection:** justify the technically strongest and operationally suitable model for e-commerce.
+- **O5 — Business translation:** convert segments into evidence-based actions for executive stakeholders.
 
-## 1.5 Methodological Approach
+## 1.5 Analytical Framework
 
-The investigation follows a structured machine learning lifecycle ([[fig15_workflow]]). Each stage is implemented in a single Google Colab notebook with fixed random seeds, and every analytical decision is logged so that results can be regenerated end to end. The notebook was re-executed from a clean state before this report was written and reproduced every reported figure.
+The investigation follows a structured lifecycle ([[fig15_workflow]]) implemented in a Python notebook (`pandas` and `scikit-learn`; McKinney, 2010; Pedregosa et al., 2011) with fixed random seed 274. Re-executing the notebook from a clean state reproduces every reported figure.
 
 ::: figure fig15_workflow | End-to-end methodological workflow, from business problem to recommended actions.
 
@@ -39,14 +39,14 @@ The investigation follows a structured machine learning lifecycle ([[fig15_workf
 
 ## 2.1 Data Quality Audit
 
-A systematic audit preceded any modelling. The file contains **no full-row duplicates**, although 34 listings repeat an identical description, consistent with multi-seller offers rather than data-entry error. Missing values affect eight columns ([[table_missing]], [[fig01_missing_values]]); the largest gaps are in `available` (111 rows, 11.1%) and `lastUpdated` (53 rows, 5.3%).
+A systematic audit preceded modelling. The raw extract holds **zero full-row duplicates**, though 34 listings share identical product descriptions across competing sellers. Eight columns contain missing values ([[table_missing]], [[fig01_missing_values]]), led by `available` (111 rows, 11.1%) and `lastUpdated` (53 rows, 5.3%).
 
-Descriptive profiling exposed four structural problems that would distort any distance-based algorithm:
+Descriptive profiling revealed four structural issues that would distort distance-based clustering:
 
-- **Extreme skew.** Units sold range from 1 to 54,052 against a median of 49.5 (skewness 9.70); price is also right-skewed (2.04). Euclidean distances on raw values would be dominated by a handful of viral listings ([[fig02_raw_distributions]]).
-- **Censored stock.** The platform displays "More than 10 available" for 299 listings and stores the value as 10, so recorded stock is a ceiling, not a measurement.
-- **Label fragmentation.** `Catatory` holds 63 distinct strings that are largely spelling and capitalisation variants of a few fragrance types.
-- **Mixed currency.** Three prices are quoted in Canadian dollars.
+- **Extreme skew.** Units sold span 1 to 54,052 against a median of 49.5 (skewness 9.70), while price is also right-skewed (2.04); Euclidean distances on raw values would be dominated by viral outliers ([[fig02_raw_distributions]]).
+- **Censored stock.** The marketplace displays "More than 10 available" for 299 listings and records them numerically as 10—a reporting ceiling rather than an exact count.
+- **Label fragmentation.** `Catatory` holds 63 distinct strings caused by spelling and capitalisation variants of a few fragrance types.
+- **Mixed currency.** 996 prices are quoted in US dollars (plus one unlabelled US listing), whereas three listings are quoted in Canadian dollars.
 
 ::: table table_missing
 ::: figure fig01_missing_values | Missing values by attribute in the raw extract.
@@ -54,14 +54,14 @@ Descriptive profiling exposed four structural problems that would distort any di
 
 ## 2.2 Cleaning Strategy
 
-Preparation followed a single principle: **recover before you impute**. Where a value was absent, it was first reconstructed from another field of the same listing; statistical imputation was used only where the cause of the gap was understood, and it was always flagged. Every step was recorded in an execution log ([[table_cleaning]]) and the overall flow is summarised in [[fig16_data_prep_flow]].
+Preparation followed one rule: **recover before you impute**. Missing values were first reconstructed from companion fields in the same listing, and statistical imputation was applied only when understood and flagged ([[table_cleaning]], [[fig16_data_prep_flow]]).
 
 ::: figure fig16_data_prep_flow | Data preparation pipeline from the raw extract to model-ready features.
 
-- **Price and sales recovery.** All five missing prices were restored from `priceWithCurrency`, which matched the numeric field exactly in all 994 rows holding both. Two sales figures were parsed from `text`; three listings showing stock but no sales were set to zero; Canadian prices were converted at a documented rate.
-- **Stock reconstruction.** Availability was rebuilt from listing wording: "More than 10" and any explicit value above ten were coded as 11 (*well stocked*), "Last One" as 1, and the 62 "Limited quantity" or lot listings received the median with an indicator column, so their influence could be audited.
-- **Category normalisation.** The 63 raw labels were consolidated into six coherent product types (Eau de Toilette, Eau de Parfum, Cologne, Parfum/Extrait, Generic fragrance, Other).
-- **Record retention.** Only three listings with neither sales nor stock information were removed, leaving **997 verified listings**. No commercially extreme listing was discarded, because best-sellers are precisely the observations the business must understand.
+- **Price and sales recovery.** All five missing prices were restored from `priceWithCurrency`, which matched `price` exactly in all 994 rows holding both. The three Canadian-dollar prices were converted to US dollars at a documented rate (0.73 USD/CAD) so all listings share one currency. Two `sold` values were parsed from `text`, and three listings showing stock without a "sold" string were set to zero.
+- **Stock reconstruction.** "More than 10" and explicit counts above ten were coded as 11 (*well stocked*), "Last One" as 1, and 62 unquantified "Limited quantity" or lot listings received the median with a `stock_imputed` indicator so their influence could be audited. Retaining that indicator prevents synthetic stock values from hiding real inventory fragility during post-hoc evaluation.
+- **Category normalisation.** The 63 raw strings were grouped into six unified types: Cologne, Eau de Toilette, Eau de Parfum, concentrated Parfum, generic fragrance and Other.
+- **Record retention.** Only three listings lacking both sales and stock information were dropped, leaving **997 verified listings**. High-volume outliers were deliberately retained because viral best-sellers represent genuine commercial concentration rather than measurement errors; trimming them would hide the marketplace's primary revenue engine.
 
 ::: table table_cleaning
 ::: shot code02_missing_values | Missing-value and duplicate audit.
@@ -72,15 +72,15 @@ Preparation followed a single principle: **recover before you impute**. Where a 
 
 ## 2.3 Transformation, Scaling and Categorical Variables
 
-**Logarithmic transformation.** A log(1 + x) transform was applied to price and units sold. It preserves zero values and rank order while compressing the long right tail, reducing the skewness of units sold from 9.72 to 0.52 and of price from 1.97 to 0.09 ([[table_clean_desc]], [[fig03_transformed_distributions]]).
+**Logarithmic transformation.** A $\log(1 + x)$ transform was applied to price and units sold. It preserves zero values and rank order while compressing long right tails, reducing skewness from 1.97 to 0.09 for price and from 9.72 to 0.52 for units sold ([[table_clean_desc]], [[fig03_transformed_distributions]]).
 
-**Standardisation.** Because all three algorithms rely on Euclidean distance, each feature was converted to a z-score so that it contributes equal variance:
+**Standardisation.** Because all clustering methods here measure Euclidean distance, each feature was z-score standardised so every input contributes equal variance (Müller and Guido, 2016):
 
 $$z = \frac{x - \mu}{\sigma}$$
 
-Min-max normalisation was evaluated as an alternative and rejected: it inflates the bounded 1–11 stock scale relative to the log-transformed measures and changed the partition substantially (ARI 0.49; Section 4.7).
+Min-max normalisation was tested and rejected: it over-weights the bounded 1–11 stock scale relative to log distributions and materially changes cluster boundaries (ARI 0.49; Section 4.6).
 
-**Categorical variables.** Brand (246 values), product type and country were deliberately excluded from the distance computation. One-hot encoding would add hundreds of sparse dimensions and allow single brands to dominate the geometry; these attributes were instead reserved for post-hoc cluster profiling.
+**Categorical variables.** Brand (246 values), product type and country were excluded from distance calculation. One-hot encoding would create hundreds of sparse dimensions allowing individual brands to dominate the geometry; these attributes were reserved for post-hoc profiling.
 
 ::: table table_clean_desc
 ::: figure fig03_transformed_distributions | Feature distributions after the logarithmic transformation.
@@ -89,9 +89,9 @@ Min-max normalisation was evaluated as an alternative and rejected: it inflates 
 
 ## 2.4 Feature Selection
 
-Candidate features were screened with Spearman rank correlation ([[fig04_feature_correlation]]) and a systematic comparison of five feature sets ([[table_featuresets]]). The correlations are weak to moderate (price–sales −0.13, price–stock −0.20, sales–stock +0.35), confirming that each candidate captures a distinct commercial mechanism without problematic collinearity.
+Candidate features were screened via Spearman rank correlation ([[fig04_feature_correlation]]) and a systematic scan of five feature subsets ([[table_featuresets]]). Correlations are weak to moderate (price–sales −0.13, price–stock −0.20, sales–stock +0.35), confirming low collinearity across distinct commercial mechanisms.
 
-The final set comprises **log price, log units sold and stock level** (Set B), representing market position, demand and supply resilience. A two-feature baseline (Set A) achieves a marginally higher silhouette but ignores availability, which is central to the brief and to stock-out risk. Adding listing recency or bottle size reduced separation without adding actionable meaning: half of all bottles fall between 3.3 and 3.7 oz, and three-quarters of listings were updated within the past week.
+**Set B**—**log price, log units sold and stock level**—was selected to represent market positioning, demand and supply risk. A two-feature baseline (Set A) scores slightly higher silhouette but omits inventory availability. Adding listing recency or bottle size lowered separation without adding actionable insight: half of bottles fall between 3.3 and 3.7 oz, and three-quarters of listings were updated within a week.
 
 ::: table table_featuresets
 ::: figure fig04_feature_correlation | Spearman rank correlation between candidate features.
@@ -100,26 +100,25 @@ The final set comprises **log price, log units sold and stock level** (Set B), r
 
 ## 3.1 Clustering in Brief
 
-Clustering is an **unsupervised learning** task: it partitions observations so that members of a group are more similar to one another than to members of other groups, without reference to known outcomes. It is the appropriate paradigm here because the catalogue carries no commercial labels; the objective is to reveal structure, not to predict a target.
+Unsupervised clustering groups unlabelled observations by geometric proximity in feature space, uncovering natural commercial profiles rather than predicting a target variable (Müller and Guido, 2016).
 
 ## 3.2 Candidate Techniques
 
-Five techniques were selected because they embody different definitions of a "cluster", from classical to state-of-the-art ([[table_techniques]]):
+Four techniques were chosen to span contrasting definitions of a cluster ([[table_techniques]]):
 
-- **K-Means** (MacQueen, 1967) is centroid-based. It minimises within-cluster variance by alternately assigning points to the nearest centroid and updating the centroids:
+- **K-Means** (MacQueen, 1967) partitions listings into $k$ compact clusters by iteratively updating centroids to minimise within-cluster sum of squares:
 
 $$J = \sum_{j=1}^{k} \sum_{x_i \in C_j} \lVert x_i - \mu_j \rVert^2$$
 
-- **Agglomerative hierarchical clustering** builds a nested tree by repeatedly merging the closest clusters. Ward linkage (Ward, 1963) merges the pair that least increases total within-cluster variance.
-- **DBSCAN** (Ester et al., 1996) is density-based. It grows clusters from dense neighbourhoods defined by a radius ε and a minimum point count, and labels isolated points as noise.
-- **HDBSCAN** (Campello, Moulavi and Sander, 2013; McInnes, Healy and Astels, 2017), in scikit-learn since 2023, removes ε: it builds a hierarchy over all density levels and keeps the most persistent clusters, so it can detect groups of differing density.
-- **TabClustPFN** (Zhao et al., 2026) is a tabular foundation model in the TabPFN family (Hollmann et al., 2025): a transformer pre-trained on synthetic clustering problems that assigns clusters, and can predict their number, in a single pass without being fitted to the data.
+- **Agglomerative hierarchical clustering** builds a bottom-up dendrogram from singleton leaves. Under **Ward linkage** (Ward, 1963), each merge minimises the incremental increase in within-group variance ($SS_{within}$).
+- **DBSCAN** (Ester et al., 1996) discovers density-connected regions requiring at least `min_samples` neighbours within radius $\varepsilon$, isolating sparse points as noise so outliers cannot pull centroids.
+- **HDBSCAN** (Campello et al., 2013; McInnes et al., 2017) removes DBSCAN's fixed-$\varepsilon$ constraint via mutual reachability distance, extracting the most persistent clusters across varying densities.
 
 ::: table table_techniques
 
-## 3.3 Dimensionality Reduction with PCA
+## 3.3 Projecting the Features with PCA
 
-Principal Component Analysis (Pearson, 1901) was applied to the standardised features, not to reduce noise (there are only three inputs) but to provide a faithful two-dimensional plane for interpreting clusters. The first two components retain **78.7%** of variance ([[fig05_pca_variance_biplot]], [[table_pca]]). **PC1 (48.6%)** loads on sales and stock against price, measuring *commercial traction*; **PC2 (30.1%)** is dominated by price (0.91), measuring *price tier*.
+With only three inputs, Principal Component Analysis (Pearson, 1901) served for 2D projection rather than noise reduction. Two components retain **78.7%** of variance ([[fig05_pca_variance_biplot]], [[table_pca]]): **PC1 (48.6%)** loads positively on sales (+0.636) and stock (+0.647) against price (−0.421), capturing *commercial traction*, while **PC2 (30.1%)** is dominated by price (+0.906), capturing *price tier*. Clustering itself remained in the full three-dimensional standardised space so the remaining 21.3% of variance (primarily orthogonal differences between price and stock) stays intact during distance calculations, while plotting onto PC1 and PC2 visually preserves the main commercial structure.
 
 ::: table table_pca
 ::: figure fig05_pca_variance_biplot | Explained variance (left) and loading biplot (right) of the principal components.
@@ -128,7 +127,7 @@ Principal Component Analysis (Pearson, 1901) was applied to the standardised fea
 
 ## 4.1 K-Means
 
-K-Means was fitted with k-means++ initialisation, 20 restarts and a fixed seed (274) for k = 2 to 10 ([[table_kscan]], [[fig06_kmeans_elbow_silhouette]]). Inertia falls by 38.9% from k = 2 to k = 4 and flattens thereafter. The silhouette peaks at k = 2 (0.337), but a two-way split merely separates high from low volume. **k = 4** has a Davies-Bouldin index (1.013) among the lowest of all candidates (only k = 10 is marginally lower, at 1.004, with segments as small as 71 listings), a solid silhouette (0.307) and segments of 22–31% of listings. All four clusters have positive mean silhouette widths (0.29–0.32) and only 1.2% of listings carry a negative value ([[fig07_kmeans_clusters_silhouette]]).
+K-Means was evaluated across $k = 2\text{–}10$ with k-means++ initialisation, 20 restarts and seed 274 ([[table_kscan]], [[fig06_kmeans_elbow_silhouette]]). Inertia drops 38.9% from $k = 2$ to $k = 4$ before flattening into an elbow, indicating diminishing compacting gains beyond four groups. Although $k = 2$ maximises silhouette (0.337), a binary split merely separates fast from slow movers and hides pricing and inventory differences needed for catalogue action. **$k = 4$** achieves a near-minimal Davies-Bouldin index (1.013; only $k = 10$ is slightly lower at 1.004 with clusters down to 71 items), solid silhouette (0.307) and balanced sizes (22–31% of listings). All four clusters show positive mean silhouettes (0.29–0.32), with only 1.2% negative points indicating mild boundary overlap ([[fig07_kmeans_clusters_silhouette]]).
 
 ::: table table_kscan
 ::: figure fig06_kmeans_elbow_silhouette | Elbow (inertia) and silhouette criteria across k.
@@ -136,7 +135,7 @@ K-Means was fitted with k-means++ initialisation, 20 restarts and a fixed seed (
 
 ## 4.2 Hierarchical Clustering
 
-Four linkage criteria were compared on identical Euclidean distances ([[table_linkage]]). Single and average linkage suffer from *chaining*, absorbing 994 and 989 listings respectively into one cluster; complete linkage produces uneven groups (424/388/180/5). **Ward linkage** yields balanced, interpretable groups (358/237/235/167) and the highest silhouette among linkages (0.253). Its dendrogram separates into four branches at a merge height of roughly 21 ([[fig09_ward_dendrogram_cut]]), supporting a four-cluster cut that also enables a like-for-like comparison with K-Means. Agreement between the two partitions is moderate (ARI 0.41).
+Four linkage criteria were tested on identical Euclidean distances ([[table_linkage]]). Single and average linkage suffer from *chaining*, absorbing almost every listing into one group (994 and 989), while complete linkage produces uneven fragments (424/388/180/5). **Ward linkage** creates balanced clusters (358/237/235/167) and the highest linkage silhouette (0.253), cutting cleanly into four branches around merge height 21 ([[fig09_ward_dendrogram_cut]]) for direct comparison with K-Means (ARI 0.41).
 
 $$\Delta(A,B) = \frac{n_A\, n_B}{n_A + n_B} \lVert \mu_A - \mu_B \rVert^2$$
 
@@ -145,61 +144,48 @@ $$\Delta(A,B) = \frac{n_A\, n_B}{n_A + n_B} \lVert \mu_A - \mu_B \rVert^2$$
 
 ## 4.3 DBSCAN
 
-MinPts was set to 6 (twice the dimensionality) and ε was read from the sorted 6-nearest-neighbour distance curve ([[fig10_dbscan_k_distance]]), followed by a 32-configuration grid search. The curve rises smoothly without a clear knee, a first sign that the catalogue lacks separated dense regions. Small radii (ε ≤ 0.35) reject 13–89% of listings as noise; larger radii merge almost everything. The best compromise (**ε = 0.45**) places 904 listings (90.7%) in one cluster, 4 in a second and 89 (8.9%) in noise, with a slightly negative silhouette (−0.014) ([[fig11_dbscan_clusters]]).
-
-This informative negative result shows that listings form a **continuum** rather than density islands. The noise set is distinctive (median price $26 vs $36, sales 163 vs 46, stock 5 vs 9), which makes DBSCAN useful as an anomaly detector.
+Setting `MinPts` = 6 ($2 \times d$), the sorted 6-nearest-neighbour distance plot rises smoothly with no sharp knee ([[fig10_dbscan_k_distance]]), indicating no separated density islands. Across a 32-setting grid ($\varepsilon \in [0.25, 0.70]$, `min_samples` $\in \{4, 6, 10, 15\}$), $\varepsilon \le 0.35$ rejects 13–89% as noise while larger radii collapse almost everything together. The best trade-off (**$\varepsilon = 0.45$**) puts 904 listings (90.7%) into one cluster, 4 into a second and 89 (8.9%) into noise (silhouette −0.014; [[fig11_dbscan_clusters]]). This informative negative result confirms a **continuum**, while making DBSCAN useful for flagging anomalies (noise medians: $26 vs $36 price, 163 vs 46 sold, 5 vs 9 stock).
 
 ::: figure fig10_dbscan_k_distance | Sorted 6-nearest-neighbour distances used to select ε.
 ::: figure fig11_dbscan_clusters | DBSCAN partition on the PCA plane; grey points are noise.
 
 ## 4.4 HDBSCAN
 
-HDBSCAN directly tests whether DBSCAN failed merely because no single ε suits every region. With MinPts = 6 for comparability, a 15-configuration grid gave the same answer for every minimum cluster size from 20 to 100: **two clusters with 47.0% of listings left as noise** ([[table_hdbscan]], [[fig18_hdbscan]]). The larger cluster is the censoring artefact identified in Section 2.1: 89.1% of its members sit at the stock ceiling, against 41.5% of all listings. The smaller is a low-stock group (median 3 units). Jittering the integer stock scale or removing stock still leaves roughly 40–50% of listings outside any dense region. The more flexible algorithm therefore confirms the continuum and exposes a data-quality effect, but does not yield a commercial segmentation.
+HDBSCAN (`MinPts` = 6) tested whether DBSCAN failed solely due to a single global $\varepsilon$. Across a 15-configuration grid, every `min_cluster_size` from 20 to 100 yielded the identical partition: **two clusters and 47.0% noise** ([[table_hdbscan]], [[fig18_hdbscan]]). The larger cluster reflects the censoring artefact (89.1% at the stock ceiling vs 41.5% overall); the smaller is a low-stock group (median 3). Jittering the integer stock scale or dropping stock still leaves 40–50% unassigned, confirming the continuum and exposing a data-quality issue.
 
 ::: table table_hdbscan
 ::: figure fig18_hdbscan | HDBSCAN on the PCA plane (a) and its alignment with the censored stock ceiling (b).
 
-## 4.5 TabClustPFN
+## 4.5 Evaluation Framework
 
-TabClustPFN was run with the authors' pretrained checkpoint on the same standardised features, once choosing k itself and once with k fixed at 4 ([[table_tabclustpfn]], [[fig19_tabclustpfn]]). Inference took about three seconds on a local CPU and 44 seconds on a Colab CPU runtime. Left to decide, it predicts **two clusters**, consistently: the same k on all 30 subsamples, identical labels when the rows are shuffled, and the highest stability of any model (ARI 0.967). Its split is thin-stock listings against the rest, and 309 of the 313 listings in the K-Means low-stock segment fall in its smaller cluster. A model that never saw this data therefore confirms independently that stock position is the strongest structure in the catalogue.
-
-Forced to four clusters it trails K-Means on every index (silhouette 0.152 against 0.307; Davies-Bouldin 1.71 against 1.01), and one group is 97% listings at the censored stock ceiling, the artefact HDBSCAN also found. The foundation model is valuable as an unbiased check on structure and on k, but it does not replace a well-prepared K-Means for a four-way business segmentation.
-
-::: table table_tabclustpfn
-::: figure fig19_tabclustpfn | TabClustPFN with automatic k (a) and k = 4 (b), and the overlap of the k = 4 solution with K-Means (c).
-
-## 4.6 Evaluation Framework
-
-Accuracy-type metrics require ground-truth labels and are therefore inapplicable to clustering. Model quality was instead triangulated across complementary measures, each answering a different question ([[table_metrics]]). The silhouette coefficient (Rousseeuw, 1987) is defined for each listing as:
+Without ground-truth target labels, clustering quality cannot rely on supervised accuracy and was triangulated across cohesion, separation and stability ([[table_metrics]]). Point-level silhouette width $s(i)$ (Rousseeuw, 1987) compares intra-cluster distance $a(i)$ against nearest-neighbour distance $b(i)$:
 
 $$s(i) = \frac{b(i) - a(i)}{\max\{a(i),\, b(i)\}}$$
 
-where a(i) is the mean distance to the listing's own cluster and b(i) to the nearest other one. Davies-Bouldin (Davies and Bouldin, 1979) and Calinski-Harabasz (Caliński and Harabasz, 1974) capture compactness against separation; the Adjusted Rand Index (Hubert and Arabie, 1985) measures agreement between partitions for the stability tests.
+Global compactness and separation were quantified via Davies-Bouldin (Davies and Bouldin, 1979) and the Calinski-Harabasz variance ratio (Caliński and Harabasz, 1974), while reproducibility across 30 bootstrap resamples (80% subsamples) and sensitivity checks was measured with the Adjusted Rand Index (Hubert and Arabie, 1985).
 
 ::: table table_metrics
 
-## 4.7 Comparative Results
+## 4.6 Comparative Results
 
 ::: table table_comparison
 ::: figure fig12_model_comparison | Internal validity and stability by model; hatched bars are scored on clustered listings only.
 
-Among models that assign every listing, K-Means leads on **every internal index**: silhouette 0.307 versus 0.253 for Ward, Davies-Bouldin 1.013 versus 1.257, Calinski-Harabasz 503.3 versus 402.9. TabClustPFN's automatic two-cluster solution scores a similar silhouette (0.326) to K-Means at the same k (0.337), but at k = 4 it is clearly weaker. HDBSCAN's higher silhouette (0.480) is not comparable, because it is computed on the 53% of listings it retains; scoring only the easiest points inflates every index. Stability is decisive: across 30 resamples of 80% of the data, K-Means reproduces its partition almost exactly (**ARI 0.929 ± 0.033**), whereas Ward does not (0.480 ± 0.063) because early merges in a hierarchy are irreversible and small sample changes propagate up the tree. TabClustPFN is equally stable (0.967 automatic, 0.926 at k = 4), so stability alone does not separate the two; segment quality at k = 4 does.
-
-Sensitivity tests confirm robustness ([[table_sensitivity]]): changing the seed (mean ARI 0.964) or removing the top 1% of sellers (0.943) barely alters the solution, so the log transform neutralised outlier leverage. Only min-max scaling (0.494) materially changes it, justifying standardisation.
+Among full-coverage models, K-Means leads on **every internal metric**: silhouette 0.307 vs 0.253 (Ward), Davies-Bouldin 1.013 vs 1.257, and Calinski-Harabasz 503.3 vs 402.9. HDBSCAN's 0.480 silhouette is not comparable because it scores only the 53% of retained listings and discards ambiguous borderline offers. Resampling stability is decisive: K-Means reaches **ARI 0.929 ± 0.033** because iterative centroid updates realign smoothly across subsamples, whereas Ward drops to **0.480 ± 0.063** as greedy, irreversible early merges amplify small sampling perturbations up the hierarchy. Sensitivity checks confirm robustness ([[table_sensitivity]]): changing seed (ARI 0.964) or removing the top 1% of sellers (0.943) barely shifts partitions, whereas min-max scaling (0.494) distorts feature weighting.
 
 ::: table table_sensitivity
 ::: callout Model Selection Decision
-**K-Means (k = 4)** is selected as the production segmentation engine: best internal validity among full-coverage models, near-perfect stability and full catalogue coverage. Ward is retained as a structural cross-check, DBSCAN as an anomaly flag, HDBSCAN as a data-quality probe and TabClustPFN as an independent check on the number of segments.
+**K-Means (k = 4)** is selected as the production engine for its top internal validity, high stability and full coverage. Ward serves as a structural cross-check, DBSCAN as an anomaly flag and HDBSCAN as a data-quality probe.
 :::
 
 # 5. Cluster Characteristics {#clusters}
 
-Mapping centroids back to business units reveals four distinct commercial segments ([[table_profiles]], [[fig13_cluster_profiles]], [[fig14_cluster_distributions]]):
+Mapping centroids to business units reveals four commercial segments ([[table_profiles]], [[fig13_cluster_profiles]], [[fig14_cluster_distributions]]):
 
-- **Cluster 2 — Best-Sellers (24.3% of listings).** The revenue engine: **90.7% of all units sold** (697,569 of 769,317) at an accessible median $29.76, with full stock. Mostly Eau de Toilette from lines such as Armaf and Ralph Lauren.
-- **Cluster 0 — Premium Designer (22.7%).** The highest prices (median $67.14) with steady but slow demand (3.8% of volume); Eau de Parfum from Giorgio Armani, Paco Rabanne and Yves Saint Laurent.
-- **Cluster 1 — Budget Commodities (21.7%).** The cheapest offers (median $18.10) yet only 1.7% of volume, with the most unbranded items: low price alone does not create demand.
-- **Cluster 3 — Low-Stock Tail (31.4%).** Median stock of 3 units, 14.7% at "Last One" and few sales (3.8% of volume, median 16 units): an imminent stock-out risk.
+- **Cluster 2 — Best-Sellers (24.3%):** Generate **90.7% of all units sold** (697,569 of 769,317) at median $29.76 with full stock; largely Eau de Toilette (Armaf, Ralph Lauren), anchoring core marketplace throughput.
+- **Cluster 0 — Premium Designer (22.7%):** Highest prices (median $67.14) with steady, slower volume (3.8%); dominated by Eau de Parfum (Giorgio Armani, Paco Rabanne, Yves Saint Laurent), where brand equity supports stronger margins.
+- **Cluster 1 — Budget Commodities (21.7%):** Cheapest offers (median $18.10) yet only 1.7% of sales, containing the highest share of unbranded listings—demonstrating that discounting alone cannot substitute for brand demand.
+- **Cluster 3 — Low-Stock Tail (31.4%):** Median stock 3, 14.7% at "Last One" and low sales (3.8%, median 16), signalling imminent stock-out risk or stale, uncompetitive inventory.
 
 ::: table table_profiles
 ::: explorer
@@ -211,51 +197,41 @@ Mapping centroids back to business units reveals four distinct commercial segmen
 
 # 6. Executive Summary {#executive-summary}
 
-Machine learning reveals that our 997 fragrance listings fall into **four commercially distinct segments**. One quarter of listings — the best-sellers — generate **91% of all units sold**, while almost a third of the catalogue is close to running out of stock. The recommended model, **K-Means with four segments**, produced better segments than four alternatives, including a 2026 AI foundation model, is among the most stable, and is simple enough to run automatically on new listings. Each segment calls for a distinct action: protect, grow, reposition or audit. The evidence shows association, not cause, so each action is framed as a test with a clear stop rule (Section 7.6).
+Our 997 fragrance listings divide into **four commercially distinct segments**. Just one quarter—the best-sellers—drives **91% of all units sold**, while nearly a third sit close to stock-out. **K-Means (four segments)** outperformed three alternatives on internal validity and stability, covers every listing, and scores new inventory automatically. Each group warrants a distinct strategy: *protect, grow, reposition* or *audit*. Because clustering reveals association rather than causation, each action is framed as a controlled test with an explicit stop rule (Section 7.6).
 
 ::: kpis
 
 # 7. Critical Evaluation {#critical-evaluation}
 
-## 7.1 Suitability of the Methods and Design Decisions
+## 7.1 Suitability of Methods and Design Decisions
 
-Unsupervised clustering is the right tool because the company holds no labelled outcomes; the aim is discovery rather than prediction. Three design decisions shaped the outcome. The log transformation stopped a handful of viral listings from dictating the segmentation. The choice of price, sales and stock answers the three questions managers actually ask — *what is it worth, does it sell, will it run out?* Excluding brand and country from the distance calculation prevented segments from degenerating into brand lists. Each decision was tested rather than assumed: the result survives changes of seed and the removal of top sellers.
+Unsupervised clustering suits an unlabelled catalogue where discovery precedes prediction. Three design choices drove success: log-transforming price and sales prevented viral listings from dominating Euclidean distances; selecting price, sales and stock aligned geometry with core commercial questions (*value, demand, stock risk*); and excluding brand and country prevented brand-only silos. Sensitivity checks verified that these partitions hold across random seeds and top-seller removal.
 
-## 7.2 The number of segments is a decision, not a discovery
+## 7.2 Cluster Count is a Business Decision, Not a Discovery
 
-The statistics do not agree on how many groups there are. The silhouette and the Calinski-Harabasz index are highest at k = 2 (0.337 and 536.7), Davies-Bouldin is lowest at k = 10 (1.004), and the foundation model, free to choose, picks two clusters. The density methods find no gaps to follow: DBSCAN puts 91% of listings in one cluster and HDBSCAN leaves 47% unassigned. Even K-Means moves a little with its random start (agreement between seeds ARI 0.96). Taken together, this says the catalogue is a continuum of price, sales and stock, and that no natural number of groups exists to be found.
+Diagnostic metrics disagree rather than identifying one natural optimum. Silhouette (0.337) and Calinski-Harabasz (536.7) peak at a trivial $k = 2$ cut, whereas Davies-Bouldin reaches its minimum at a fragmented $k = 10$ (1.004). Density methods find no natural gaps: DBSCAN merges 91% into one cluster and HDBSCAN leaves 47% unassigned. Even K-Means shifts slightly across seeds (ARI 0.96). Together, this shows the catalogue forms a **continuous market spectrum** without discrete natural islands. Consequently, $k = 4$ is chosen operationally to match four distinct commercial actions, treating boundaries as soft guidelines.
 
-From first principles, then, k is not something to estimate but something to choose, and the useful question is how many different actions the business can actually take. Here there are four: protect, grow, reposition, audit. The segmentation is best read as a coordinate system for decisions, not as a map of natural kinds, and its boundaries should be treated as soft.
+## 7.3 Value Beyond a Simple Sales Ranking
 
-## 7.3 What the segmentation adds beyond a sales ranking
-
-Demand is extremely concentrated: the top quarter of listings sells 94% of the units. A one-line rule already finds most of the best-sellers (“sold at least 300 units” recovers 87% of them with 83% precision), so for the head of the catalogue the clustering adds little. Its value lies in the other three quarters, which it separates by stock and price. A small decision tree with eight leaves reproduces the four segments with about 90% cross-validated accuracy ([[table_rules]]): stock thin or deep, then sales high or low, then price high or low.
-
-I read this as a strength. The segments can be run as a handful of readable rules in a spreadsheet or a database query, with K-Means as the way the thresholds were found and shown to hang together. For operations I would deploy the rules; for discovery and re-checking each month I would re-run K-Means.
+Demand is heavily concentrated: the top quartile delivers 94% of sales. A simple threshold (`sold >= 300`) already captures 87% of best-sellers at 83% precision, so clustering adds modest value at the top. Its real contribution lies in splitting the remaining 75% by price and stock. A shallow depth-3 decision tree (eight rules) reproduces all four segments with ~90% cross-validated accuracy ([[table_rules]]), splitting first on stock, then sales, then price. Operations can deploy these transparent rules directly while refreshing K-Means monthly to recalibrate thresholds.
 
 ::: table table_rules
 
-## 7.4 Measurement versus structure
+## 7.4 Measurement Artefacts Versus Market Structure
 
-The platform shows “More than 10 available” and stores it as 11, so 41.5% of listings sit on a stock ceiling. Three methods were drawn to it: 89% of HDBSCAN’s main cluster, and 97% of the largest TabClustPFN group at k = 4, are listings at the ceiling. The algorithms found where the platform stops measuring, and part of the strongest structure in this data belongs to the reporting, not to the market.
+The platform caps visible stock at "More than 10 available" (coded 11), placing 41.5% of listings on an artificial ceiling. HDBSCAN was drawn directly to this artefact, with 89% of its primary cluster sitting at 11. Inside K-Means, only the **Low-Stock Tail** (0% at ceiling) reflects exact inventory counts; the remaining three segments sit 54–64% on the ceiling, so their separation relies primarily on price and sales. "Last One" alerts are therefore trustworthy, whereas "deep stock" claims remain unverified—making exact stock counts our highest-value data upgrade.
 
-Inside the K-Means solution this matters in a precise way. The low-stock segment is real, because stock below 11 is recorded exactly (none of its listings is at the ceiling). The other three segments are 54–64% ceiling listings, so for them stock carries almost no information and their separation comes from price and sales. A “Last One” alert can therefore be trusted; a claim about “deep” stock cannot. Collecting true stock counts is the single most valuable data improvement.
+## 7.5 Fair Model Comparison and Operational Fit
 
-## 7.5 Comparing the models fairly
-
-Several headline numbers mislead. HDBSCAN’s silhouette of 0.480 is a selection effect: it is computed on the 53% of listings the method keeps, and scoring only the easiest points flatters any index. DBSCAN’s stability of 0.749 is the stability of a degenerate answer, since a partition with 91% of listings in one cluster is stable by construction. Stability is necessary but not sufficient; Ward’s instability (0.480) is informative precisely because its groups are otherwise sensible.
-
-TabClustPFN needs no tuning and is very stable (0.967 with its own k = 2), but at the four segments the business needs it is clearly weaker (silhouette 0.152 against 0.307). Its agreement with K-Means on the low-stock group is also less independent than it looks. As far as I can tell from its public code, its synthetic training data come from mixture models, so it too expects blob-shaped groups; agreement shows that a blob view of this data is robust, not that blobs are the truth. It is also a black box that depends on externally hosted weights.
-
-An e-commerce platform needs a model that covers every listing, can be refreshed often, scores new listings at once, scales and can be explained to managers ([[table_ecom]]). K-Means meets all five, which is why it is the production model, with the rules from Section 7.3 as its operating form.
+Headline scores can mislead. HDBSCAN's 0.480 silhouette reflects selection bias from scoring only the 53% easiest points, while DBSCAN's 0.749 stability merely reflects a degenerate 91% single cluster. Conversely, Ward's low stability (0.480) exposes how sensitive greedy hierarchical merges are to sampling noise. For production e-commerce ([[table_ecom]]), only **K-Means** satisfies all five operational needs: full coverage, instant scoring, refresh stability, linear scaling and clear business interpretation.
 
 ::: table table_ecom
 
-## 7.6 Where the value is, and what would change the recommendation
+## 7.6 Commercial Value and Testable Hypotheses
 
-Units understate who matters. Weighting each listing’s sales by its price gives a rough revenue proxy: best-sellers carry 83.2% of it and the budget segment only 0.8%, but the premium segment carries 9.5% against 3.8% of units, so its commercial weight is 2.5 times what unit counts suggest. An average best-seller listing is worth roughly ninety times an average budget listing on this measure (the proxy is listed price times cumulative units sold, so it is indicative, not accounting revenue).
+Unit volume understates the premium tier. Weighting sales by price as a rough revenue proxy, best-sellers drive 83.2% and budget offers just 0.8%, whereas **Premium Designer captures 9.5% from 3.8% of units**—2.5× its unit share. An average best-seller listing is worth roughly 90× an average budget listing on this indicative measure (listed price × cumulative units sold, not accounting revenue).
 
-Each recommendation in Section 8 is therefore a hypothesis, not a finding. The data shows association, and the link between price and sales is weak (Spearman −0.13); it cannot show that promoting budget listings is wasted money. The sound next step is a test: promote a random half of the budget listings for four weeks and keep the spend only if the extra sales pay for it. My recommendations would change if true stock counts split the “deep” segments into healthy and overstocked listings, if listings were seen moving between segments month to month (the segments would then be states, not types), or if that test showed that budget listings do respond.
+Because price–sales correlation is weak (−0.13), Section 8 actions are framed as **testable hypotheses** with clear stop rules rather than guaranteed causal levers. For instance, paid promotion on budget items should be paused on a random 50% test group for four weeks, retaining spend only where incremental sales cover ad cost, while Premium Designer listings should prioritise brand-story merchandising and selective bundling rather than margin-eroding discounts. Our strategy would change if exact stock separated overstocked items from healthy stock, if monthly refreshes showed rapid migration across segments (making segments temporary states rather than product types), or if controlled budget tests proved profitable.
 
 # 8. Recommendations for Business Managers {#recommendations}
 
@@ -264,17 +240,15 @@ The four segments translate into targeted, measurable interventions ([[fig17_seg
 ::: figure fig17_segment_actions | Share of listings versus share of units sold per segment, with the recommended action.
 ::: recs
 
-Implementation should begin with the best-sellers and the low-stock tail, which protect the most revenue for the least effort, and every action should run as a test first (Section 7.6). Success should be tracked through stock-outs in Cluster 2, the proportion of Cluster 3 listings restocked or delisted within 30 days, and sales per advertising dollar in Cluster 1. The segmentation should be refreshed monthly, with new listings scored on arrival and DBSCAN noise points reviewed as potential anomalies.
+Execution should prioritise **Cluster 2** (protecting core volume) and **Cluster 3** (inventory cleanup), piloting each intervention first (Section 7.6). Success should be tracked via Cluster 2 stock-out rates, 30-day Cluster 3 restock/delist ratios, Cluster 0 attachment or bundle conversion, and net sales per advertising dollar in Cluster 1. Governance should refresh K-Means monthly with fixed centroid tracking, score new listings automatically on arrival, and route DBSCAN noise points to buyers or pricing managers as priority anomalies requiring manual validation.
 
 # 9. Limitations {#limitations}
 
-The data is a single snapshot of one product family, so segment boundaries may differ for other categories or seasons. The stock ceiling (Section 7.4) limits what can be said about deep stock, and the revenue proxy is indicative, not accounting revenue. Above all, the segments describe association, not cause, and listings near a boundary could belong to either neighbouring segment: they should guide prioritisation, not replace commercial judgement.
+This single-category snapshot captures listings updated mainly around April–May 2024 and may not generalise across seasonal peaks, gifting cycles or other product lines. Stock censoring limits visibility into genuine overstocking above ten units (Section 7.4), and our revenue proxy ignores seller fees, shipping costs and product margins. Above all, clustering establishes commercial association rather than causal elasticity, so borderline listings near cluster edges require buyer review alongside automated rules.
 
 # 10. Conclusion and Future Work {#conclusion}
 
-This project shows that a carefully prepared K-Means model can turn an unlabelled, messy catalogue into four actionable segments, and that the commercial value of the catalogue is extraordinarily concentrated. Three lessons stand out. **Preparation mattered more than algorithm choice**: recovering values from listing text and handling the hidden stock ceiling changed the result more than any hyperparameter, even against a state-of-the-art foundation model. **The number of segments is a business decision, not a statistical result**, because the catalogue is a continuum. And the density methods, though they failed as segmenters, were worth running: together they revealed the continuum and exposed how censoring distorts the data.
-
-Future work would add revenue, margin and true stock counts, use text embeddings of the descriptions, and track segment migration over time. Testing whether segment membership predicts next-quarter sales, and running the promotion tests of Section 7.6, would turn the descriptive model into a decision tool; a small dashboard would put each listing's segment in managers' hands.
+Careful preparation transformed a messy, unlabelled catalogue into four actionable segments, exposing extreme demand concentration. Three lessons stand out: **preparation outweighed algorithm tuning**, **segment count is an executive decision on a continuum**, and **density methods added diagnostic value** despite failing as segmenters. Future work should integrate accounting margins, exact stock levels and description embeddings, track monthly segment migration, and deploy a lightweight manager dashboard.
 
 <!-- count:none -->
 # References {#references}
@@ -283,7 +257,6 @@ Future work would add revenue, margin and true stock counts, use text embeddings
 - Caliński, T. and Harabasz, J. (1974) 'A dendrite method for cluster analysis', *Communications in Statistics*, 3(1), pp. 1–27.
 - Davies, D.L. and Bouldin, D.W. (1979) 'A cluster separation measure', *IEEE Transactions on Pattern Analysis and Machine Intelligence*, PAMI-1(2), pp. 224–227.
 - Ester, M., Kriegel, H.-P., Sander, J. and Xu, X. (1996) 'A density-based algorithm for discovering clusters in large spatial databases with noise', in *Proceedings of the Second International Conference on Knowledge Discovery and Data Mining*. Portland: AAAI Press, pp. 226–231.
-- Hollmann, N., Müller, S., Purucker, L., Krishnakumar, A., Körfer, M., Hoo, S.B., Schirrmeister, R.T. and Hutter, F. (2025) 'Accurate predictions on small data with a tabular foundation model', *Nature*, 637, pp. 319–326.
 - Hubert, L. and Arabie, P. (1985) 'Comparing partitions', *Journal of Classification*, 2(1), pp. 193–218.
 - MacQueen, J. (1967) 'Some methods for classification and analysis of multivariate observations', in *Proceedings of the Fifth Berkeley Symposium on Mathematical Statistics and Probability*. Berkeley: University of California Press, pp. 281–297.
 - McInnes, L., Healy, J. and Astels, S. (2017) 'hdbscan: Hierarchical density based clustering', *Journal of Open Source Software*, 2(11), p. 205.
@@ -293,12 +266,11 @@ Future work would add revenue, margin and true stock counts, use text embeddings
 - Pedregosa, F. et al. (2011) 'Scikit-learn: machine learning in Python', *Journal of Machine Learning Research*, 12, pp. 2825–2830.
 - Rousseeuw, P.J. (1987) 'Silhouettes: a graphical aid to the interpretation and validation of cluster analysis', *Journal of Computational and Applied Mathematics*, 20, pp. 53–65.
 - Ward, J.H. (1963) 'Hierarchical grouping to optimize an objective function', *Journal of the American Statistical Association*, 58(301), pp. 236–244.
-- Zhao, T., Wang, G., Tan, Y.S. and Zhang, Q. (2026) 'TabClustPFN: a prior-fitted network for tabular data clustering', *arXiv preprint* arXiv:2601.21656.
 
 # Appendix A: Reproducible Code {#appendix}
 
-The complete Task 1 implementation is a single Jupyter notebook that executes end to end in about 30 seconds on Google Colab or locally, with the fixed random seed 274. All materials — notebook, dataset, figures, tables and code screenshots — are hosted in the project repository: https://github.com/kvmmn/_COM7022_MachineLearning. TabClustPFN is run from the authors' public code and checkpoint (CC BY-NC 4.0 licence, used for non-commercial coursework); the notebook downloads both and, because R's `rpy2` is only needed to generate the model's pre-training data, supplies a placeholder module that raises an error if ever called. The full notebook code follows, one screenshot per cell in execution order.
+The complete Task 1 implementation is a single Jupyter notebook executing end to end in under 10 seconds locally with fixed random seed 274. All materials—notebook, dataset, figures, tables and code screenshots—are hosted in the repository: https://github.com/kvmmn/_COM7022_MachineLearning. The full notebook code follows, one screenshot per cell in execution order.
 
 ::: appendix
 
-**AI use declaration.** AI tools were used to support structuring and proofreading. All analysis was executed, verified and interpreted by the author, and every reported figure was checked against the notebook output. *(Align wording with the Arden AI policy before submission.)*
+**AI use declaration.** AI tools were used to support structuring and proofreading. All analysis was executed, verified and interpreted by the author, and every reported figure was checked against the notebook output.
