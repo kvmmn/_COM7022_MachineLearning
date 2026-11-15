@@ -28,7 +28,7 @@ Three barriers prevent manual catalogue management. First, **scale**: listing gr
 
 ## 1.5 Analytical Framework
 
-The investigation follows a structured lifecycle ([[fig15_workflow]]) implemented in a Python notebook (`pandas` and `scikit-learn`; McKinney, 2010; Pedregosa et al., 2011) with fixed random seed 274. Re-executing the notebook from a clean state reproduces every reported figure.
+The investigation follows a structured lifecycle ([[fig15_workflow]]) implemented reproducibly in Python using `pandas` and `scikit-learn` (McKinney, 2010; Pedregosa et al., 2011) with fixed random seed 274. Re-executing the notebook from a clean state reproduces every reported figure.
 
 ::: figure fig15_workflow | End-to-end methodological workflow, from business problem to recommended actions.
 
@@ -72,7 +72,7 @@ Preparation followed one rule: **recover before you impute**. Missing values wer
 
 ## 2.3 Transformation, Scaling and Categorical Variables
 
-**Logarithmic transformation.** A $\log(1 + x)$ transform was applied to price and units sold. It preserves zero values and rank order while compressing long right tails, reducing skewness from 1.97 to 0.09 for price and from 9.72 to 0.52 for units sold ([[table_clean_desc]], [[fig03_transformed_distributions]]).
+**Logarithmic transformation.** A log(1 + *x*) transform was applied to price and units sold. It preserves zero values and rank order while compressing long right tails, reducing skewness from 1.97 to 0.09 for price and from 9.72 to 0.52 for units sold ([[table_clean_desc]], [[fig03_transformed_distributions]]).
 
 **Standardisation.** Because all clustering methods here measure Euclidean distance, each feature was z-score standardised so every input contributes equal variance (Müller and Guido, 2016):
 
@@ -106,13 +106,13 @@ Unsupervised clustering groups unlabelled observations by geometric proximity in
 
 Four techniques were chosen to span contrasting definitions of a cluster ([[table_techniques]]):
 
-- **K-Means** (MacQueen, 1967) partitions listings into $k$ compact clusters by iteratively updating centroids to minimise within-cluster sum of squares:
+- **K-Means** (MacQueen, 1967) assigns listings into *k* compact groups by iteratively relocating cluster centres to reduce within-cluster variance:
 
 $$J = \sum_{j=1}^{k} \sum_{x_i \in C_j} \lVert x_i - \mu_j \rVert^2$$
 
-- **Agglomerative hierarchical clustering** builds a bottom-up dendrogram from singleton leaves. Under **Ward linkage** (Ward, 1963), each merge minimises the incremental increase in within-group variance ($SS_{within}$).
-- **DBSCAN** (Ester et al., 1996) discovers density-connected regions requiring at least `min_samples` neighbours within radius $\varepsilon$, isolating sparse points as noise so outliers cannot pull centroids.
-- **HDBSCAN** (Campello et al., 2013; McInnes et al., 2017) removes DBSCAN's fixed-$\varepsilon$ constraint via mutual reachability distance, extracting the most persistent clusters across varying densities.
+- **Agglomerative hierarchical clustering** builds a bottom-up dendrogram from singleton leaves. Under **Ward linkage** (Ward, 1963), each merge minimises the incremental increase in within-group variance (SS_within).
+- **DBSCAN** (Ester et al., 1996) discovers density-connected regions requiring at least `min_samples` neighbours within radius ε, isolating sparse points as noise so outliers cannot pull centroids.
+- **HDBSCAN** (Campello et al., 2013; McInnes et al., 2017) removes DBSCAN's fixed-ε constraint via mutual reachability distance, identifying durable density clusters across regions of differing point concentration.
 
 ::: table table_techniques
 
@@ -127,7 +127,7 @@ With only three inputs, Principal Component Analysis (Pearson, 1901) served for 
 
 ## 4.1 K-Means
 
-K-Means was evaluated across $k = 2\text{–}10$ with k-means++ initialisation, 20 restarts and seed 274 ([[table_kscan]], [[fig06_kmeans_elbow_silhouette]]). Inertia drops 38.9% from $k = 2$ to $k = 4$ before flattening into an elbow, indicating diminishing compacting gains beyond four groups. Although $k = 2$ maximises silhouette (0.337), a binary split merely separates fast from slow movers and hides pricing and inventory differences needed for catalogue action. **$k = 4$** achieves a near-minimal Davies-Bouldin index (1.013; only $k = 10$ is slightly lower at 1.004 with clusters down to 71 items), solid silhouette (0.307) and balanced sizes (22–31% of listings). All four clusters show positive mean silhouettes (0.29–0.32), with only 1.2% negative points indicating mild boundary overlap ([[fig07_kmeans_clusters_silhouette]]).
+K-Means was evaluated across *k* = 2–10 with k-means++ initialisation, 20 restarts and seed 274 ([[table_kscan]], [[fig06_kmeans_elbow_silhouette]]). Inertia drops 38.9% from *k* = 2 to *k* = 4 before flattening into an elbow, indicating diminishing compacting gains beyond four groups. Although *k* = 2 maximises silhouette (0.337), a binary split merely separates fast from slow movers and hides pricing and inventory differences needed for catalogue action. ***k* = 4** achieves a near-minimal Davies-Bouldin index (1.013; only *k* = 10 is slightly lower at 1.004 with clusters down to 71 items), solid silhouette (0.307) and balanced sizes (22–31% of listings). All four clusters show positive mean silhouettes (0.29–0.32), with only 1.2% negative points indicating mild boundary overlap ([[fig07_kmeans_clusters_silhouette]]).
 
 ::: table table_kscan
 ::: figure fig06_kmeans_elbow_silhouette | Elbow (inertia) and silhouette criteria across k.
@@ -144,25 +144,25 @@ $$\Delta(A,B) = \frac{n_A\, n_B}{n_A + n_B} \lVert \mu_A - \mu_B \rVert^2$$
 
 ## 4.3 DBSCAN
 
-Setting `MinPts` = 6 ($2 \times d$), the sorted 6-nearest-neighbour distance plot rises smoothly with no sharp knee ([[fig10_dbscan_k_distance]]), indicating no separated density islands. Across a 32-setting grid ($\varepsilon \in [0.25, 0.70]$, `min_samples` $\in \{4, 6, 10, 15\}$), $\varepsilon \le 0.35$ rejects 13–89% as noise while larger radii collapse almost everything together. The best trade-off (**$\varepsilon = 0.45$**) puts 904 listings (90.7%) into one cluster, 4 into a second and 89 (8.9%) into noise (silhouette −0.014; [[fig11_dbscan_clusters]]). This informative negative result confirms a **continuum**, while making DBSCAN useful for flagging anomalies (noise medians: $26 vs $36 price, 163 vs 46 sold, 5 vs 9 stock).
+Setting `MinPts` = 6 (2 × *d*), the sorted 6-nearest-neighbour distance plot rises smoothly with no sharp knee ([[fig10_dbscan_k_distance]]), indicating no separated density islands. Across a 32-setting grid (ε ∈ [0.25, 0.70], `min_samples` ∈ {4, 6, 10, 15}), ε ≤ 0.35 rejects 13–89% as noise while larger radii collapse almost everything together. The best trade-off (**ε = 0.45**) puts 904 listings (90.7%) into one cluster, 4 into a second and 89 (8.9%) into noise (silhouette −0.014; [[fig11_dbscan_clusters]]). This informative negative result confirms a **continuum**, while making DBSCAN useful for flagging anomalies (noise medians: $26 vs $36 price, 163 vs 46 sold, 5 vs 9 stock).
 
 ::: figure fig10_dbscan_k_distance | Sorted 6-nearest-neighbour distances used to select ε.
 ::: figure fig11_dbscan_clusters | DBSCAN partition on the PCA plane; grey points are noise.
 
 ## 4.4 HDBSCAN
 
-HDBSCAN (`MinPts` = 6) tested whether DBSCAN failed solely due to a single global $\varepsilon$. Across a 15-configuration grid, every `min_cluster_size` from 20 to 100 yielded the identical partition: **two clusters and 47.0% noise** ([[table_hdbscan]], [[fig18_hdbscan]]). The larger cluster reflects the censoring artefact (89.1% at the stock ceiling vs 41.5% overall); the smaller is a low-stock group (median 3). Jittering the integer stock scale or dropping stock still leaves 40–50% unassigned, confirming the continuum and exposing a data-quality issue.
+HDBSCAN (`MinPts` = 6) tested whether DBSCAN failed solely due to a single global ε. Across a 15-configuration grid, every `min_cluster_size` from 20 to 100 yielded the identical partition: **two clusters and 47.0% noise** ([[table_hdbscan]], [[fig18_hdbscan]]). The larger cluster reflects the censoring artefact (89.1% at the stock ceiling vs 41.5% overall); the smaller is a low-stock group (median 3). Jittering the integer stock scale or dropping stock still leaves 40–50% unassigned, confirming the continuum and exposing a data-quality issue.
 
 ::: table table_hdbscan
 ::: figure fig18_hdbscan | HDBSCAN on the PCA plane (a) and its alignment with the censored stock ceiling (b).
 
 ## 4.5 Evaluation Framework
 
-Without ground-truth target labels, clustering quality cannot rely on supervised accuracy and was triangulated across cohesion, separation and stability ([[table_metrics]]). Point-level silhouette width $s(i)$ (Rousseeuw, 1987) compares intra-cluster distance $a(i)$ against nearest-neighbour distance $b(i)$:
+Without ground-truth target labels, clustering quality cannot rely on supervised accuracy and was triangulated across cohesion, separation and stability ([[table_metrics]]). Point-level silhouette width *s*(*i*) (Rousseeuw, 1987) evaluates how closely an item matches its assigned cluster *a*(*i*) relative to separation from the nearest rival group *b*(*i*):
 
 $$s(i) = \frac{b(i) - a(i)}{\max\{a(i),\, b(i)\}}$$
 
-Global compactness and separation were quantified via Davies-Bouldin (Davies and Bouldin, 1979) and the Calinski-Harabasz variance ratio (Caliński and Harabasz, 1974), while reproducibility across 30 bootstrap resamples (80% subsamples) and sensitivity checks was measured with the Adjusted Rand Index (Hubert and Arabie, 1985).
+Overall cohesion and separation were assessed via Davies-Bouldin (Davies and Bouldin, 1979) and the Calinski-Harabasz variance ratio (Caliński and Harabasz, 1974), whereas stability over 30 subsamples (80% draws) and parameter robustness were evaluated using the Adjusted Rand Index (Hubert and Arabie, 1985).
 
 ::: table table_metrics
 
@@ -209,7 +209,7 @@ Unsupervised clustering suits an unlabelled catalogue where discovery precedes p
 
 ## 7.2 Cluster Count is a Business Decision, Not a Discovery
 
-Diagnostic metrics disagree rather than identifying one natural optimum. Silhouette (0.337) and Calinski-Harabasz (536.7) peak at a trivial $k = 2$ cut, whereas Davies-Bouldin reaches its minimum at a fragmented $k = 10$ (1.004). Density methods find no natural gaps: DBSCAN merges 91% into one cluster and HDBSCAN leaves 47% unassigned. Even K-Means shifts slightly across seeds (ARI 0.96). Together, this shows the catalogue forms a **continuous market spectrum** without discrete natural islands. Consequently, $k = 4$ is chosen operationally to match four distinct commercial actions, treating boundaries as soft guidelines.
+Diagnostic metrics disagree rather than identifying one natural optimum. Silhouette (0.337) and Calinski-Harabasz (536.7) peak at a trivial *k* = 2 cut, whereas Davies-Bouldin reaches its minimum at a fragmented *k* = 10 (1.004). Density methods find no natural gaps: DBSCAN merges 91% into one cluster and HDBSCAN leaves 47% unassigned. Even K-Means shifts slightly across seeds (ARI 0.96). Together, this shows the catalogue forms a **continuous market spectrum** without discrete natural islands. Consequently, *k* = 4 is chosen operationally to match four distinct commercial actions, treating boundaries as soft guidelines.
 
 ## 7.3 Value Beyond a Simple Sales Ranking
 
@@ -269,7 +269,7 @@ Careful preparation transformed a messy, unlabelled catalogue into four actionab
 
 # Appendix A: Reproducible Code {#appendix}
 
-The complete Task 1 implementation is a single Jupyter notebook executing end to end in under 10 seconds locally with fixed random seed 274. All materials—notebook, dataset, figures, tables and code screenshots—are hosted in the repository: https://github.com/kvmmn/_COM7022_MachineLearning. The full notebook code follows, one screenshot per cell in execution order.
+The complete Task 1 implementation is a single Jupyter notebook executing end to end in under 10 seconds locally with fixed random seed 274. All materials—notebook, dataset, figures and tables—are hosted on GitHub (https://github.com/kvmmn/_COM7022_MachineLearning) and executed on Google Colab (https://colab.research.google.com/github/kvmmn/_COM7022_MachineLearning/blob/main/COM7022%20-%20Assignment/COM7022_Clustering_25199053.ipynb). The full notebook code follows, one screenshot per cell in execution order.
 
 ::: appendix
 

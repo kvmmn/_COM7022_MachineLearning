@@ -6,14 +6,13 @@ Assignment: **Product Segmentation and Performance Clustering (Portfolio)**
 
 ---
 
-### Final report and review page
+### Final deliverables
 - **Final report (Word):** [`COM7022 - Assignment/COM7022_Portfolio_25199053_final.docx`](COM7022%20-%20Assignment/COM7022_Portfolio_25199053_final.docx) (`2,860` words of body text: `1,891` Task 1 + `969` Task 2, within the 3,000-word limit; code cells and body snippets marked as `[PLACEHOLDER]` frames for Google Colab screenshots; export PDF from Word after inserting screenshots).
-- **Review page (GitHub Pages):** [https://kvmmn.github.io/_COM7022_MachineLearning/](https://kvmmn.github.io/_COM7022_MachineLearning/) shows the same report with an interactive segment explorer.
-- **Notebook (reproducible single-file pipeline):** [`COM7022 - Assignment/COM7022_Clustering_25199053.ipynb`](COM7022%20-%20Assignment/COM7022_Clustering_25199053.ipynb)
+- **Notebook (Google Colab execution):** [Open in Google Colab](https://colab.research.google.com/github/kvmmn/_COM7022_MachineLearning/blob/main/COM7022%20-%20Assignment/COM7022_Clustering_25199053.ipynb) · [`COM7022 - Assignment/COM7022_Clustering_25199053.ipynb`](COM7022%20-%20Assignment/COM7022_Clustering_25199053.ipynb)
 - **Dataset:** [`COM7022 - Assignment/Sales-[5444].csv`](COM7022%20-%20Assignment/Sales-%5B5444%5D.csv)
 - **Screenshot guide:** [`COM7022 - Assignment/_brain/SCREENSHOT_GUIDE.md`](COM7022%20-%20Assignment/_brain/SCREENSHOT_GUIDE.md)
 
-**Single source of truth:** all report text lives in `COM7022 - Assignment/_brain/REPORT.md`. The Word report and the GitHub Pages portal are both generated from it, so they always match.
+**Single source of truth:** all report text lives in `COM7022 - Assignment/_brain/REPORT.md`. The Word report (and internal R&D HTML preview) are generated from it, so they always match.
 
 **Code layout:** all analysis code, figures, tables and diagrams live in the single notebook (`80` cells: `26` Markdown + `54` Code) and write cleanly to `COM7022 - Assignment/output/figures/` and `.../tables/`. The build script `COM7022 - Assignment/scripts/build_report.py` assembles the Word deliverable and HTML portal (`docx`, `html`, or optional `shots`).
 

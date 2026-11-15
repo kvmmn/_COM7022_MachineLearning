@@ -54,6 +54,7 @@ STUDENT_ID = "25199053"
 REPO = "https://github.com/kvmmn/_COM7022_MachineLearning"
 BLOB = REPO + "/blob/main/COM7022%20-%20Assignment/"
 REPO_DIR = "COM7022 - Assignment/"
+COLAB_URL = "https://colab.research.google.com/github/kvmmn/_COM7022_MachineLearning/blob/main/COM7022%20-%20Assignment/COM7022_Clustering_25199053.ipynb"
 PAGES = "https://kvmmn.github.io/_COM7022_MachineLearning/"
 TITLE = "Product Segmentation and Performance Clustering for an E-Commerce Fragrance Marketplace"
 SUBTITLE = ("Comparative evaluation of partitioning, hierarchical, and density-based "
@@ -126,7 +127,7 @@ def build_tables():
     ks = _t("table07_kmeans_k_scan.csv")
     ks = ks[["k", "inertia", "smallest_cluster", "silhouette", "davies_bouldin", "calinski_harabasz"]]
     ks.columns = ["k", "Inertia (WCSS)", "Min Cluster Size", "Silhouette Index (↑)", "Davies-Bouldin (↓)", "Calinski-Harabasz (↑)"]
-    t["table_kscan"] = (ks, "Optimization metrics and cluster validity across configurations k ∈ [2, 10].", "output/tables/table07_kmeans_k_scan.csv")
+    t["table_kscan"] = (ks, "K-Means internal cluster validity and inertia across k = 2 to 10.", "output/tables/table07_kmeans_k_scan.csv")
 
     lk = _t("table08_linkage_comparison.csv")
     lk.columns = ["Linkage", "Cophenetic correlation", "Silhouette (k = 4)", "Cluster sizes"]
@@ -718,12 +719,14 @@ def source_line(p, rel, cell_num=None):
 
 def caption(doc, label, text, rel=None, cell_num=None):
     p = doc.add_paragraph()
-    p.paragraph_format.space_before, p.paragraph_format.space_after = Pt(3), Pt(10)
+    p.paragraph_format.space_before = Pt(3)
+    p.paragraph_format.space_after = Pt(1 if (rel or cell_num is not None) else 10)
     run(p, f"{label}. ", 9, bold=True, color=MIDNIGHT)
     docx_inline(p, text, 9, MUTE)
     if rel or cell_num is not None:
-        p.add_run("\n")
-        source_line(p, rel, cell_num)
+        sp = doc.add_paragraph()
+        sp.paragraph_format.space_before, sp.paragraph_format.space_after = Pt(0), Pt(10)
+        source_line(sp, rel, cell_num)
 
 
 def figure(doc, path, label, text, rel, cell_num=None, max_height=22.0):
@@ -870,7 +873,7 @@ def cover(doc, wc):
             ("Word count", f"{wc['total']:,} words of body text (Task 1: {wc['task1_total']:,} · Task 2: {wc['task2']:,}); "
                            "captions, tables, figures, code placeholders, references and appendix excluded"),
             ("Dataset", "Sales-[5444].csv · 1,000 listings × 10 attributes"),
-            ("Repository", REPO), ("Review portal", PAGES)]
+            ("Repository", REPO), ("Colab notebook", COLAB_URL)]
     t = doc.add_table(rows=len(meta), cols=2); table_no_borders(t); t.alignment = WD_TABLE_ALIGNMENT.CENTER
     for i, (k, v) in enumerate(meta):
         a, b = t.cell(i, 0), t.cell(i, 1)
