@@ -1814,7 +1814,7 @@ def build_html(prefix):
   <div class="hero-links">
     <a class="primary" href="{REPO}" target="_blank" rel="noopener">GitHub repository ↗</a>
     <a href="{repo_url('COM7022_Clustering_25199053.ipynb')}" target="_blank" rel="noopener">Notebook ↗</a>
-    <a href="{repo_url('COM7022_Portfolio_25199053_final.pdf')}" target="_blank" rel="noopener">Report (PDF) ↗</a>
+    <a href="{repo_url('COM7022_Portfolio_25199053_final.docx')}" target="_blank" rel="noopener">Report (DOCX) ↗</a>
   </div>
 </section>"""
     page = f"""<!DOCTYPE html>

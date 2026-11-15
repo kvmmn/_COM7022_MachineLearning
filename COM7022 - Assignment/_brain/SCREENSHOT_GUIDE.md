@@ -116,7 +116,7 @@
 | A53 | `cell53.png` | 13. Report diagrams | `# Figure 17: share of listings vs share of units sold…` |
 | A54 | `cell54.png` | 13. Report diagrams | `# Save the frozen results ledger…` |
 
-> نکته: سلول‌های 41 و 42 (TabClustPFN) در Colab حدود یک دقیقه طول می‌کشند و وزن‌های مدل را دانلود می‌کنند؛ صبر کن تا خروجی کامل شود و بعد عکس بگیر.
+> نکته: تمام 54 سلول کد بدون نیاز به دانلود مدل‌های سنگین و معمولاً در کمتر از 10 ثانیه اجرا می‌شوند؛ بعد از اتمام `Runtime -> Run all` خروجی‌ها کامل آماده است و می‌توانی عکس بگیری.
 
 ---
 
