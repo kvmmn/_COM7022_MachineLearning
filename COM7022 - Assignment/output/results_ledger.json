@@ -59,8 +59,8 @@
       "silhouette": 0.48,
       "davies_bouldin": 0.785,
       "calinski_harabasz": 476.0,
-      "stability_ARI_mean": 0.748,
-      "stability_ARI_sd": 0.097,
+      "stability_ARI_mean": 0.745,
+      "stability_ARI_sd": 0.101,
       "smallest_cluster_pct": 13.5,
       "largest_cluster_pct": 39.4
     }
