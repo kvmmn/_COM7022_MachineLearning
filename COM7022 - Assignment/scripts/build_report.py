@@ -115,7 +115,7 @@ def build_tables():
         ["Hierarchical (Ward)", "Agglomerative: merges clusters into a dendrogram", "No k needed upfront; reveals nested structure",
          "Irreversible merges; O(n²) memory; sensitive to sampling"],
         ["DBSCAN", "Density-based: grows clusters from dense regions", "Arbitrary shapes; explicit noise and outlier detection",
-         "Needs density gaps; sensitive to ε and MinPts"],
+         "Requires clear density gaps; sensitive to radius ε and neighbourhood size"],
         ["HDBSCAN", "Hierarchical density: keeps the most persistent clusters across all densities",
          "No ε; handles varying density; membership strengths", "Still needs density gaps; can leave many points as noise"],
     ], columns=["Technique", "Principle", "Strengths", "Limitations"]),
@@ -956,9 +956,8 @@ def cover(doc, wc):
     pa.paragraph_format.line_spacing = 1.12
     run(pa, "Statement of Authorship: ", 8.5, bold=True, color=MIDNIGHT)
     run(pa, (f"This portfolio (Student ID: {STUDENT_ID}) presents my independent analytical work in Python for module "
-             "COM7022 Machine Learning. Cited literature follows Arden University Harvard conventions; every figure and table "
-             "links to its repository file and generating cell in COM7022_Clustering_25199053.ipynb, and code sections carry "
-             "placeholders for live Google Colab screenshots."), 8.5, color=MUTE)
+             "COM7022 Machine Learning. Cited literature follows Arden University Harvard conventions; every figure, table "
+             "and Appendix code section includes screenshot evidence with a direct link to its generating cell in Google Colab."), 8.5, color=MUTE)
 
 
 def contents(doc, blocks, pages):

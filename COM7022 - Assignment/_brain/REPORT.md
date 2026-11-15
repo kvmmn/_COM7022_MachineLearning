@@ -28,7 +28,7 @@ Three barriers prevent manual catalogue management. First, **scale**: listing gr
 
 ## 1.5 Analytical Framework
 
-The investigation follows a structured lifecycle ([[fig15_workflow]]) implemented reproducibly in Python using `pandas` and `scikit-learn` (McKinney, 2010; Pedregosa et al., 2011) with fixed random seed 274. Re-executing the notebook from a clean state reproduces every reported figure.
+The investigation follows a structured lifecycle ([[fig15_workflow]]) executed reproducibly in Python via the `pandas` and `scikit-learn` libraries (McKinney, 2010; Pedregosa et al., 2011) with fixed random seed 274. Re-executing the notebook from a clean state reproduces every reported figure.
 
 ::: figure fig15_workflow | End-to-end methodological workflow, from business problem to recommended actions.
 
@@ -58,7 +58,7 @@ Preparation followed one rule: **recover before you impute**. Missing values wer
 
 ::: figure fig16_data_prep_flow | Data preparation pipeline from the raw extract to model-ready features.
 
-- **Price and sales recovery.** All five missing prices were restored from `priceWithCurrency`, which matched `price` exactly in all 994 rows holding both. The three Canadian-dollar prices were converted to US dollars at a documented rate (0.73 USD/CAD) so all listings share one currency. Two `sold` values were parsed from `text`, and three listings showing stock without a "sold" string were set to zero.
+- **Price and sales recovery.** All five missing prices were restored from `priceWithCurrency`, which matched `price` exactly in all 994 rows holding both. The three Canadian-dollar prices were converted to US dollars at a documented rate (0.73 USD/CAD) so all listings share one currency. Two `sold` entries were recovered directly from `text`, while three listings displaying stock without a "sold" label were assigned zero.
 - **Stock reconstruction.** "More than 10" and explicit counts above ten were coded as 11 (*well stocked*), "Last One" as 1, and 62 unquantified "Limited quantity" or lot listings received the median with a `stock_imputed` indicator so their influence could be audited. Retaining that indicator prevents synthetic stock values from hiding real inventory fragility during post-hoc evaluation.
 - **Category normalisation.** The 63 raw strings were grouped into six unified types: Cologne, Eau de Toilette, Eau de Parfum, concentrated Parfum, generic fragrance and Other.
 - **Record retention.** Only three listings lacking both sales and stock information were dropped, leaving **997 verified listings**. High-volume outliers were deliberately retained because viral best-sellers represent genuine commercial concentration rather than measurement errors; trimming them would hide the marketplace's primary revenue engine.
@@ -127,7 +127,7 @@ With only three inputs, Principal Component Analysis (Pearson, 1901) served for 
 
 ## 4.1 K-Means
 
-K-Means was evaluated across *k* = 2–10 with k-means++ initialisation, 20 restarts and seed 274 ([[table_kscan]], [[fig06_kmeans_elbow_silhouette]]). Inertia drops 38.9% from *k* = 2 to *k* = 4 before flattening into an elbow, indicating diminishing compacting gains beyond four groups. Although *k* = 2 maximises silhouette (0.337), a binary split merely separates fast from slow movers and hides pricing and inventory differences needed for catalogue action. ***k* = 4** achieves a near-minimal Davies-Bouldin index (1.013; only *k* = 10 is slightly lower at 1.004 with clusters down to 71 items), solid silhouette (0.307) and balanced sizes (22–31% of listings). All four clusters show positive mean silhouettes (0.29–0.32), with only 1.2% negative points indicating mild boundary overlap ([[fig07_kmeans_clusters_silhouette]]).
+K-Means was evaluated across *k* = 2–10 with k-means++ initialisation, 20 restarts and seed 274 ([[table_kscan]], [[fig06_kmeans_elbow_silhouette]]). Inertia drops 38.9% from *k* = 2 to *k* = 4 before flattening into an elbow, indicating diminishing compacting gains beyond four groups. Although *k* = 2 maximises silhouette (0.337), a binary split merely separates fast from slow movers and hides pricing and inventory differences needed for catalogue action. **k = 4** achieves a near-minimal Davies-Bouldin index (1.013; only *k* = 10 is slightly lower at 1.004 with clusters down to 71 items), solid silhouette (0.307) and balanced sizes (22–31% of listings). All four clusters show positive mean silhouettes (0.29–0.32), with only 1.2% negative points indicating mild boundary overlap ([[fig07_kmeans_clusters_silhouette]]).
 
 ::: table table_kscan
 ::: figure fig06_kmeans_elbow_silhouette | Elbow (inertia) and silhouette criteria across k.
@@ -162,7 +162,7 @@ Without ground-truth target labels, clustering quality cannot rely on supervised
 
 $$s(i) = \frac{b(i) - a(i)}{\max\{a(i),\, b(i)\}}$$
 
-Overall cohesion and separation were assessed via Davies-Bouldin (Davies and Bouldin, 1979) and the Calinski-Harabasz variance ratio (Caliński and Harabasz, 1974), whereas stability over 30 subsamples (80% draws) and parameter robustness were evaluated using the Adjusted Rand Index (Hubert and Arabie, 1985).
+Partition compactness and inter-cluster separation were quantified with the Davies–Bouldin index (Davies and Bouldin, 1979) and the Calinski–Harabasz variance ratio (Caliński and Harabasz, 1974), while solution reproducibility across 30 stratified 80% subsamples and analytical sensitivity checks were measured through the Adjusted Rand Index (Hubert and Arabie, 1985).
 
 ::: table table_metrics
 
