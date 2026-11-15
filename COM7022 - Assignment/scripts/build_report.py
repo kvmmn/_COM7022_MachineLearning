@@ -27,7 +27,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 from docx import Document
-from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -46,6 +46,7 @@ from pygments.token import Comment, Keyword, Name, Number, Operator, String, Tex
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "output"
+ASSETS = ROOT / "assets"
 FIGS, SHOTS, TABLES = OUT / "figures", OUT / "screenshots", OUT / "tables"
 SOURCE = ROOT / "_brain" / "REPORT.md"
 NOTEBOOK = ROOT / "COM7022_Clustering_25199053.ipynb"
@@ -862,35 +863,102 @@ def h1(doc, text):
 
 # ----------------------------------------------------------------------------- cover and contents
 def cover(doc, wc):
-    spacer(doc, 24)
-    band(doc, HEX["midnight"], [
-        ("MACHINE LEARNING PORTFOLIO  ·  MSC DATA SCIENCE  ·  ARDEN UNIVERSITY BERLIN", 8.5, True, TIFFANY, 12),
-        (TITLE, 25, True, WHITE, 12),
-        (SUBTITLE, 10.5, False, RGBColor(0xD5, 0xDE, 0xE3), 0)], pad=(620, 620, 480, 440), left_bar=HEX["tiffany"])
-    spacer(doc, 10)
-    meta = [("Student ID", STUDENT_ID), ("Module", "COM7022 Machine Learning · Assignment [5444]"),
-            ("Assessment", "Portfolio · Task 1 Practical Project · Task 2 Critical Report"),
-            ("Word count", f"{wc['total']:,} words of body text (Task 1: {wc['task1_total']:,} · Task 2: {wc['task2']:,}); "
-                           "captions, tables, figures, code placeholders, references and appendix excluded"),
-            ("Dataset", "Sales-[5444].csv · 1,000 listings × 10 attributes"),
-            ("Repository", REPO), ("Colab notebook", COLAB_URL)]
-    t = doc.add_table(rows=len(meta), cols=2); table_no_borders(t); t.alignment = WD_TABLE_ALIGNMENT.CENTER
+    """Official Arden University Assessment Cover Sheet matching COM7021 styling."""
+    logo = ASSETS / "arden_logo.png"
+    banner = doc.add_table(rows=1, cols=2)
+    banner.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table_no_borders(banner)
+    left_c, right_c = banner.cell(0, 0), banner.cell(0, 1)
+    left_c.width, right_c.width = Cm(14.1), Cm(2.7)
+    shade(left_c, HEX["midnight"])
+    shade(right_c, HEX["midnight"])
+    cell_borders(left_c, left=(28, HEX["tiffany"]))
+    cell_margins(left_c, 240, 220, 260, 160)
+    cell_margins(right_c, 180, 180, 100, 180)
+    right_c.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+
+    p_eye = left_c.paragraphs[0]
+    p_eye.paragraph_format.space_after = Pt(5)
+    run(p_eye, "ARDEN UNIVERSITY BERLIN  ·  SCHOOL OF COMPUTING & DATA SCIENCE  ·  MSC DATA SCIENCE",
+        8.5, bold=True, color=TIFFANY)
+    p_ttl = left_c.add_paragraph()
+    p_ttl.paragraph_format.space_after = Pt(5)
+    run(p_ttl, TITLE, 15.5, bold=True, color=WHITE)
+    p_sub = left_c.add_paragraph()
+    p_sub.paragraph_format.space_after = Pt(0)
+    run(p_sub, "COM7022 Machine Learning Assessment Portfolio [5444]  ·  Task 1 & Task 2",
+        9.5, color=RGBColor(0xE6, 0xF5, 0xF2))
+
+    p_logo = right_c.paragraphs[0]
+    p_logo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_logo.paragraph_format.space_after = Pt(0)
+    if logo.exists():
+        p_logo.add_run().add_picture(str(logo), width=Cm(1.95))
+
+    p_sec = doc.add_paragraph()
+    p_sec.paragraph_format.space_before, p_sec.paragraph_format.space_after = Pt(10), Pt(4)
+    p_sec.paragraph_format.keep_with_next = True
+    run(p_sec, "Assessment Control & Submission Specification", 11, bold=True, color=MIDNIGHT)
+
+    meta = [
+        ("Awarding Body:", "Arden University (Study Centre: Berlin)"),
+        ("Programme Name:", "MSc Data Science"),
+        ("Module Name:", "COM7022 — Machine Learning"),
+        ("Assessment Title:", f"COM7022 Portfolio: {TITLE}"),
+        ("Student Number:", STUDENT_ID),
+        ("Word Count:", f"{wc['total']:,} words of body text (Task 1: {wc['task1_total']:,} · Task 2: {wc['task2']:,}) — within the 3,000-word limit"),
+        ("Dataset:", "Sales-[5444].csv (1,000 listings × 10 attributes)"),
+        ("Repository:", REPO),
+        ("Colab Notebook:", COLAB_URL),
+    ]
+    t = doc.add_table(rows=len(meta) + 1, cols=2)
+    t.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table_no_borders(t)
+    hdr_a, hdr_b = t.cell(0, 0), t.cell(0, 1)
+    hdr_a.width, hdr_b.width = Cm(5.0), Cm(11.8)
+    for c, txt in ((hdr_a, "Assessment Parameter"), (hdr_b, "Official Submission Details")):
+        shade(c, HEX["midnight"])
+        cell_margins(c, 75, 75, 110, 90)
+        c.paragraphs[0].paragraph_format.space_after = Pt(0)
+        run(c.paragraphs[0], txt, 9, bold=True, color=WHITE)
+
+    highlight_rows = {0, 4, 5}
     for i, (k, v) in enumerate(meta):
-        a, b = t.cell(i, 0), t.cell(i, 1)
-        a.width, b.width = Cm(3.4), Cm(13.4)
+        a, b = t.cell(i + 1, 0), t.cell(i + 1, 1)
+        a.width, b.width = Cm(5.0), Cm(11.8)
+        bg = HEX["mist"] if i in highlight_rows else (HEX["paper"] if i % 2 == 0 else None)
         for c in (a, b):
-            cell_borders(c, bottom=(4, HEX["grid"])); cell_margins(c, 80, 80, 60, 60)
+            if bg:
+                shade(c, bg)
+            cell_borders(c, bottom=(4, HEX["grid"]))
+            cell_margins(c, 65, 65, 110, 90)
             c.paragraphs[0].paragraph_format.space_after = Pt(0)
-        run(a.paragraphs[0], k.upper(), 8, bold=True, color=MUTE)
+            c.paragraphs[0].paragraph_format.line_spacing = 1.08
+        run(a.paragraphs[0], k, 9, bold=True, color=MIDNIGHT)
         if v.startswith("http"):
-            hyperlink(b.paragraphs[0], v, v, 10, TEAL, True)
+            hyperlink(b.paragraphs[0], v, v, 8.5, TEAL, False)
         else:
-            run(b.paragraphs[0], v, 10, bold=(i == 0), color=MIDNIGHT)
-    spacer(doc, 14)
+            run(b.paragraphs[0], v, 9, bold=(i in highlight_rows), color=MIDNIGHT if i in highlight_rows else INK)
+
+    spacer(doc, 8)
     kpi_strip(doc)
-    p = doc.add_paragraph()
-    run(p, "Every figure and table links to its repository file and generating notebook cell; code sections carry placeholders for live Google Colab screenshots.",
-        8.5, italic=True, color=MUTE)
+
+    auth = doc.add_table(rows=1, cols=1)
+    auth.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table_no_borders(auth)
+    ac = auth.cell(0, 0)
+    ac.width = Cm(16.8)
+    shade(ac, HEX["paper"])
+    cell_borders(ac, left=(24, HEX["midnight"]), top=(4, HEX["grid"]), right=(4, HEX["grid"]), bottom=(4, HEX["grid"]))
+    cell_margins(ac, 90, 90, 140, 120)
+    pa = ac.paragraphs[0]
+    pa.paragraph_format.space_after = Pt(0)
+    pa.paragraph_format.line_spacing = 1.12
+    run(pa, "Statement of Authorship: ", 8.5, bold=True, color=MIDNIGHT)
+    run(pa, (f"This portfolio (Student ID: {STUDENT_ID}) presents my independent analytical work in Python for module "
+             "COM7022 Machine Learning. Cited literature follows Arden University Harvard conventions; every figure and table "
+             "links to its repository file and generating cell in COM7022_Clustering_25199053.ipynb, and code sections carry "
+             "placeholders for live Google Colab screenshots."), 8.5, color=MUTE)
 
 
 def contents(doc, blocks, pages):
